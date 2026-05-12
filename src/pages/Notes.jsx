@@ -102,6 +102,11 @@ function Notes() {
   }, [notes, activeTab, searchTerm]);
 
   const handleEdit = (note) => {
+    if (note.isCodeWorkspace) {
+      navigate(`/editor?roomId=${note.codeRoomId}`);
+      return;
+    }
+
     setEditingNote(note);
     setTitle(note.title || "");
     setContent(note.content || "");
@@ -241,36 +246,54 @@ function Notes() {
               <div className="w-8 h-8 border-3 border-primary/20 border-t-primary rounded-full animate-spin"></div>
             </div>
           ) : filteredNotes.length > 0 ? (
-            filteredNotes.map(note => (
-              <article 
-                key={note._id}
-                onClick={() => !note.isTrashed && handleEdit(note)}
-                className={`glass-card-premium p-5 rounded-2xl relative flex flex-col h-[260px] group border border-outline-variant/5 hover:border-primary/20 hover:shadow-xl transition-all bg-surface-container-lowest/50 ${
-                  note.isTrashed ? "cursor-default opacity-85" : "cursor-pointer"
-                }`}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <span className="px-2.5 py-0.5 bg-primary/10 text-primary text-[10px] font-black rounded-lg uppercase tracking-wider">
-                    {note.tags?.[0] || "General"}
-                  </span>
-                  {!note.isTrashed && (
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleFavorite(note._id);
-                      }}
-                      className={`${note.isPinned ? "text-error" : "text-outline-variant"} hover:scale-110 transition-transform`}
-                    >
-                      <span className="material-symbols-outlined text-[20px]" style={note.isPinned ? { fontVariationSettings: "'FILL' 1" } : {}}>
-                        favorite
-                      </span>
-                    </button>
-                  )}
-                </div>
-                <h3 className="font-bold text-on-surface mb-1.5 line-clamp-2">{note.title || "Untitled"}</h3>
-                <p className="text-on-surface-variant text-xs mb-auto line-clamp-4 leading-relaxed">
-                  {note.content?.replace(/<[^>]*>/g, "") || "No content captured yet..."}
-                </p>
+            filteredNotes.map(note => {
+              const isCode = note.isCodeWorkspace;
+              let filesCount = 0;
+              if (isCode && note.content) {
+                try {
+                  const parsed = JSON.parse(note.content);
+                  if (Array.isArray(parsed)) filesCount = parsed.length;
+                } catch (e) {}
+              }
+
+              const previewText = isCode
+                ? `Real-time collaborative IDE workspace (Room: ${note.codeRoomId}). Contains ${filesCount} code files and folders.`
+                : (note.content?.replace(/<[^>]*>/g, "") || "No content captured yet...");
+
+              const tagColorClass = isCode
+                ? "bg-emerald-500/10 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-400"
+                : "bg-primary/10 text-primary text-[10px] font-black rounded-lg uppercase tracking-wider";
+
+              return (
+                <article 
+                  key={note._id}
+                  onClick={() => !note.isTrashed && handleEdit(note)}
+                  className={`glass-card-premium p-5 rounded-2xl relative flex flex-col h-[260px] group border border-outline-variant/5 hover:border-primary/20 hover:shadow-xl transition-all bg-surface-container-lowest/50 ${
+                    note.isTrashed ? "cursor-default opacity-85" : "cursor-pointer"
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <span className={`px-2.5 py-0.5 ${tagColorClass}`}>
+                      {isCode ? "Code IDE" : (note.tags?.[0] || "General")}
+                    </span>
+                    {!note.isTrashed && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFavorite(note._id);
+                        }}
+                        className={`${note.isPinned ? "text-error" : "text-outline-variant"} hover:scale-110 transition-transform`}
+                      >
+                        <span className="material-symbols-outlined text-[20px]" style={note.isPinned ? { fontVariationSettings: "'FILL' 1" } : {}}>
+                          favorite
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                  <h3 className="font-bold text-on-surface mb-1.5 line-clamp-2">{note.title || "Untitled"}</h3>
+                  <p className="text-on-surface-variant text-xs mb-auto line-clamp-4 leading-relaxed">
+                    {previewText}
+                  </p>
                 <div className="pt-3 border-t border-outline-variant/5 flex items-center justify-between">
                   <span className="text-[10px] font-bold text-outline uppercase tracking-widest">
                     {new Date(note.updatedAt).toLocaleDateString()}
@@ -330,7 +353,8 @@ function Notes() {
                   </div>
                 </div>
               </article>
-            ))
+            );
+          })
           ) : activeTab === "trash" ? (
             <div 
               className="col-span-full border border-outline-variant/10 bg-surface-container-low/10 rounded-2xl p-12 flex flex-col items-center justify-center text-center min-h-[260px]"

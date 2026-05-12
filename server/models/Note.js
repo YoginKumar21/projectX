@@ -103,6 +103,14 @@ const noteSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    isCodeWorkspace: {
+      type: Boolean,
+      default: false,
+    },
+    codeRoomId: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true },
 );

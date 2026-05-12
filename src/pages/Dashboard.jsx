@@ -124,6 +124,11 @@ function Dashboard() {
   };
 
   const handleEdit = (note) => {
+    if (note.isCodeWorkspace) {
+      navigate(`/editor?roomId=${note.codeRoomId}`);
+      return;
+    }
+
     if (activeFilter !== "active") {
       toast.error("Only active notes can be edited");
       return;
@@ -349,7 +354,27 @@ function Dashboard() {
               <div className="w-8 h-8 border-3 border-primary/20 border-t-primary rounded-full animate-spin"></div>
             </div>
           ) : filteredNotes.length > 0 ? (
-            filteredNotes.map((note) => (
+            filteredNotes.map((note) => {
+            const isCode = note.isCodeWorkspace;
+            let filesCount = 0;
+            if (isCode && note.content) {
+              try {
+                const parsed = JSON.parse(note.content);
+                if (Array.isArray(parsed)) filesCount = parsed.length;
+              } catch (e) {}
+            }
+
+            const previewText = isCode
+              ? `Real-time collaborative IDE workspace (Room: ${note.codeRoomId}). Contains ${filesCount} code files and folders.`
+              : (note.content?.replace(/<[^>]*>/g, "") || "No content preview...");
+
+            const tagColorClass = isCode
+              ? "bg-emerald-500/10 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-400"
+              : note.isPinned
+                ? "bg-error/10 text-error"
+                : "bg-primary/10 text-primary";
+
+            return (
               <div
                 key={note._id}
                 onClick={() => handleEdit(note)}
@@ -358,15 +383,15 @@ function Dashboard() {
                 }`}
               >
                 <div className="flex justify-between items-start mb-3">
-                  <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider ${note.isPinned ? "bg-error/10 text-error" : "bg-primary/10 text-primary"}`}>
-                    {note.isPinned ? "Favorite" : (note.tags?.[0] || "General")}
+                  <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider ${tagColorClass}`}>
+                    {note.isPinned ? "Favorite" : (isCode ? "Code IDE" : (note.tags?.[0] || "General"))}
                   </span>
                 </div>
                 <h4 className="font-bold text-on-surface mb-1.5 truncate">
                   {note.title || "Untitled Note"}
                 </h4>
                 <p className="text-on-surface-variant text-xs line-clamp-3 mb-4 leading-relaxed">
-                  {note.content?.replace(/<[^>]*>/g, "") || "No content preview..."}
+                  {previewText}
                 </p>
                 <div className="flex items-center justify-between pt-3 border-t border-outline-variant/5">
                   <p className="text-[10px] font-bold text-outline uppercase tracking-widest flex items-center gap-1.5">
@@ -428,7 +453,8 @@ function Dashboard() {
                   </div>
                 </div>
               </div>
-            ))
+            );
+          })
           ) : (
             <div onClick={handleNewNote} className="p-8 rounded-2xl border-2 border-dashed border-outline-variant/20 flex flex-col items-center justify-center text-center space-y-4 hover:border-primary/30 transition-colors group cursor-pointer bg-surface-container-low/20">
               <div className="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center group-hover:scale-110 transition-transform duration-300">

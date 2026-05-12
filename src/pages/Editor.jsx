@@ -4,7 +4,7 @@ import EditorMonaco from "@monaco-editor/react";
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
 import { 
   Play, Sparkles, MessageSquare, Terminal, Users, 
-  FolderPlus, FilePlus, RefreshCw, Trash2, 
+  FolderPlus, FilePlus, RefreshCw, Trash2, Folder, Save, 
   Send, Code, Cpu, ExternalLink, Globe, 
   Copy, Check, UserPlus, LogOut, CheckCircle, Wifi, 
   WifiOff, ArrowRight, CornerDownRight, Loader, Info
@@ -61,6 +61,8 @@ function Editor() {
   const [code, setCode] = useState("");
   const [newFileNameInput, setNewFileNameInput] = useState("");
   const [showNewFileRow, setShowNewFileRow] = useState(false);
+  const [showNewFolderRow, setShowNewFolderRow] = useState(false);
+  const [newFolderNameInput, setNewFolderNameInput] = useState("");
 
   // Collaboration State
   const [users, setUsers] = useState([]);
@@ -405,6 +407,45 @@ function Editor() {
 
     setNewFileNameInput("");
     setShowNewFileRow(false);
+  };
+
+  // Folder Creation Actions
+  const handleCreateFolderSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (!newFolderNameInput.trim()) {
+      toast.error("Please enter a folder name");
+      return;
+    }
+    const name = newFolderNameInput.trim();
+    if (files.some(f => f.name.toLowerCase() === name.toLowerCase())) {
+      toast.error("A file or folder with that name already exists");
+      return;
+    }
+
+    socket.emit("create-file", { roomId, fileName: name, isFolder: true });
+
+    setNewFolderNameInput("");
+    setShowNewFolderRow(false);
+  };
+
+  // Save Workspace Action
+  const handleSaveWorkspace = async () => {
+    try {
+      const workspaceTitle = prompt("Enter a name for this workspace:", `Code Workspace: ${roomId}`);
+      if (workspaceTitle === null) return; // User cancelled
+      
+      const payload = {
+        roomId,
+        title: workspaceTitle.trim() || `Code Workspace: ${roomId}`,
+        files
+      };
+
+      await API.post("/notes/save-workspace", payload);
+      toast.success("Workspace saved to My Notes successfully!");
+    } catch (err) {
+      console.error("Save Workspace Error:", err);
+      toast.error(err.response?.data?.message || "Failed to save workspace");
+    }
   };
 
   // File Deletion Action
@@ -821,6 +862,16 @@ function Editor() {
           )}
 
           <div className="flex items-center gap-2">
+            {/* Save Workspace Button (Emerald) */}
+            <button
+              onClick={handleSaveWorkspace}
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-[0.98] border border-emerald-500/20 hover:border-emerald-500/40 rounded-xl text-xs text-emerald-400 font-extrabold transition-all"
+              title="Save Workspace to My Notes"
+            >
+              <Save size={13} className="shrink-0" />
+              Save Workspace
+            </button>
+
             {/* Run Button (Green) */}
             <button
               onClick={handleRunCode}
@@ -883,13 +934,28 @@ function Editor() {
               <div className="h-full bg-[#0d0f14] border-r border-[#1e2030] flex flex-col min-w-0">
                 <div className="px-3.5 py-3 border-b border-[#1e2030] flex items-center justify-between">
                   <span className="text-[10px] font-black uppercase tracking-widest text-[#6c7086]">Explorer</span>
-                  <button 
-                    onClick={() => setShowNewFileRow(!showNewFileRow)}
-                    className="p-1 text-[#6c7086] hover:text-white hover:bg-[#1e2030] rounded transition-colors"
-                    title="Add New File"
-                  >
-                    <FilePlus size={14} />
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button 
+                      onClick={() => {
+                        setShowNewFolderRow(!showNewFolderRow);
+                        setShowNewFileRow(false);
+                      }}
+                      className="p-1 text-[#6c7086] hover:text-white hover:bg-[#1e2030] rounded transition-colors"
+                      title="Add New Folder"
+                    >
+                      <FolderPlus size={14} />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setShowNewFileRow(!showNewFileRow);
+                        setShowNewFolderRow(false);
+                      }}
+                      className="p-1 text-[#6c7086] hover:text-white hover:bg-[#1e2030] rounded transition-colors"
+                      title="Add New File"
+                    >
+                      <FilePlus size={14} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto py-2">
@@ -910,9 +976,27 @@ function Editor() {
                     </form>
                   )}
 
+                  {/* Create Folder Inline Input */}
+                  {showNewFolderRow && (
+                    <form onSubmit={handleCreateFolderSubmit} className="px-3 mb-2">
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder="Folder name..."
+                        value={newFolderNameInput}
+                        onChange={(e) => setNewFolderNameInput(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-[#1e2030] border border-[#313244] focus:border-primary/50 text-[11px] text-white rounded outline-none font-mono transition-all"
+                        onBlur={() => {
+                          if (!newFolderNameInput.trim()) setShowNewFolderRow(false);
+                        }}
+                      />
+                    </form>
+                  )}
+
                   {/* Files Item Tree List */}
                   <div className="space-y-0.5">
                     {files.map(file => {
+                      const isFolder = file.isFolder;
                       const isActive = file.name === activeFileName;
                       // Find if any other user is editing this file
                       const editors = users.filter(u => u.socketId !== myId && u.activeFile === file.name);
@@ -922,16 +1006,20 @@ function Editor() {
                           key={file.name}
                           onClick={() => handleSelectFile(file.name)}
                           className={`group flex items-center gap-2.5 px-3.5 py-1.5 text-xs font-semibold cursor-pointer transition-colors relative ${
-                            isActive 
+                            isActive && !isFolder
                               ? "bg-primary/10 text-primary-light" 
                               : "text-[#a6adc8] hover:bg-[#1e2030]/50 hover:text-white"
                           }`}
                         >
-                          <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getFileColor(file.name) }}></div>
+                          {isFolder ? (
+                            <Folder size={14} className="text-[#faad14] shrink-0" />
+                          ) : (
+                            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getFileColor(file.name) }}></div>
+                          )}
                           <span className="font-mono truncate flex-1">{file.name}</span>
 
                           {/* Collaborator Editing badge indicator */}
-                          {editors.length > 0 && (
+                          {editors.length > 0 && !isFolder && (
                             <div className="flex items-center gap-0.5 max-w-[50px] overflow-hidden">
                               {editors.map(ed => (
                                 <div 
@@ -953,13 +1041,13 @@ function Editor() {
                               handleDeleteFile(file.name);
                             }}
                             className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-red-400 transition-opacity"
-                            title="Delete File"
+                            title={isFolder ? "Delete Folder" : "Delete File"}
                           >
                             <Trash2 size={12} />
                           </button>
 
                           {/* Left highlight active strip */}
-                          {isActive && <div className="absolute top-0 left-0 bottom-0 w-[3px] bg-primary rounded-r"></div>}
+                          {isActive && !isFolder && <div className="absolute top-0 left-0 bottom-0 w-[3px] bg-primary rounded-r"></div>}
                         </div>
                       );
                     })}

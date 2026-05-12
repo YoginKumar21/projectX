@@ -646,6 +646,49 @@ const saveAIVersion = async (req, res) => {
     res.status(500).json({ message: "Failed to save AI version" });
   }
 };
+
+// POST /api/notes/save-workspace
+const saveWorkspace = async (req, res) => {
+  try {
+    const { roomId, title, files } = req.body;
+
+    if (!roomId) {
+      return res.status(400).json({ message: "Room ID is required" });
+    }
+    if (!Array.isArray(files)) {
+      return res.status(400).json({ message: "Files array is required" });
+    }
+
+    const defaultTitle = title || `Code Workspace: ${roomId}`;
+
+    let note = await Note.findOne({ isCodeWorkspace: true, codeRoomId: roomId });
+
+    if (note) {
+      note.title = defaultTitle;
+      note.content = JSON.stringify(files);
+      await note.save();
+    } else {
+      note = await Note.create({
+        title: defaultTitle,
+        content: JSON.stringify(files),
+        owner: req.user.id,
+        isCodeWorkspace: true,
+        codeRoomId: roomId,
+        tags: ["Code", "Workspace"],
+      });
+    }
+
+    const populatedNote = await Note.findById(note._id)
+      .populate("owner", "name email")
+      .populate("sharedWith", "name email");
+
+    res.status(200).json(populatedNote);
+  } catch (error) {
+    console.error("Save Workspace Error:", error.message);
+    res.status(500).json({ message: "Failed to save code workspace", error: error.message });
+  }
+};
+
 module.exports = {
   createNote,
   getNotes,
@@ -660,4 +703,5 @@ module.exports = {
   getNoteVersions,
   restoreVersion,
   saveAIVersion,
+  saveWorkspace,
 };
