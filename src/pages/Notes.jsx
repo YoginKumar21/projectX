@@ -20,6 +20,7 @@ function Notes() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [sharingNote, setSharingNote] = useState(null);
   
   // Editor State
   const [showEditor, setShowEditor] = useState(false);
@@ -317,7 +318,11 @@ function Notes() {
                         >
                           <span className="material-symbols-outlined text-[16px]">delete</span>
                         </button>
-                        <button className="p-1.5 hover:bg-primary/10 rounded-lg text-on-surface-variant hover:text-primary transition-colors">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setSharingNote(note); }}
+                          className="p-1.5 hover:bg-primary/10 rounded-lg text-on-surface-variant hover:text-primary transition-colors"
+                          title="Share Document"
+                        >
                           <span className="material-symbols-outlined text-[16px]">share</span>
                         </button>
                       </>
@@ -368,7 +373,180 @@ function Notes() {
           handleCancelEdit={() => setShowEditor(false)}
         />
       </EditorDrawer>
+
+      {sharingNote && (
+        <ShareExportModal 
+          note={sharingNote} 
+          onClose={() => setSharingNote(null)} 
+        />
+      )}
     </AppShell>
+  );
+}
+
+// Premium, interactive Share & Export Modal Component
+function ShareExportModal({ note, onClose }) {
+  const [email, setEmail] = useState("");
+  const [isSharing, setIsSharing] = useState(false);
+
+  const handleShareEmail = async (e) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    try {
+      setIsSharing(true);
+      const res = await API.post(`/notes/${note._id}/share`, { email });
+      toast.success(res.data?.message || "Collaborator added successfully!");
+      setEmail("");
+      onClose();
+    } catch (err) {
+      const msg = err.response?.data?.message || "User with this email not found";
+      toast.error(msg);
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const downloadText = () => {
+    const title = note.title || "Untitled Note";
+    const content = note.content || "";
+    const cleanContent = content.replace(/<[^>]*>/g, "");
+    
+    const text = `Title: ${title}\nUpdated: ${new Date(note.updatedAt).toLocaleDateString()}\n\n${cleanContent}`;
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${title.toLowerCase().replace(/\s+/g, "_")}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Downloaded as Plain Text (.txt)");
+  };
+
+  const downloadHtml = () => {
+    const title = note.title || "Untitled Note";
+    const content = note.content || "";
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>${title}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #1e293b; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+          h1 { border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; color: #0f172a; }
+          .meta { color: #64748b; font-size: 0.85em; margin-bottom: 24px; }
+          ul, ol { padding-left: 20px; }
+          img { max-width: 100%; height: auto; border-radius: 8px; }
+        </style>
+      </head>
+      <body>
+        <h1>${title}</h1>
+        <div class="meta">Last Updated: ${new Date(note.updatedAt).toLocaleDateString()}</div>
+        <div>${content}</div>
+      </body>
+      </html>
+    `;
+    
+    const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${title.toLowerCase().replace(/\s+/g, "_")}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Downloaded as Rich HTML Document");
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="glass-card-premium w-full max-w-lg rounded-2xl shadow-2xl animate-in zoom-in-95 duration-150 border border-outline-variant/10 bg-white dark:bg-slate-900 overflow-hidden">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="min-w-0">
+            <h2 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">share</span>
+              Share & Export Document
+            </h2>
+            <p className="text-[10px] text-outline truncate mt-0.5 font-bold uppercase">Note: "{note.title || "Untitled"}"</p>
+          </div>
+          <button 
+            onClick={onClose} 
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
+          >
+            <span className="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          
+          {/* Section 1: Export Card */}
+          <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-2xl space-y-3.5">
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-outline flex items-center gap-2">
+              <span className="material-symbols-outlined text-[16px]">download</span>
+              Download Document Offline
+            </h4>
+            <p className="text-xs text-slate-500 leading-relaxed font-medium">
+              Save your document locally. You can export as raw plain text or format-preserving HTML.
+            </p>
+            <div className="grid grid-cols-2 gap-3.5 pt-1">
+              <button
+                onClick={downloadText}
+                className="py-2.5 bg-white dark:bg-slate-850 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-95"
+              >
+                <span className="material-symbols-outlined text-[16px]">text_snippet</span>
+                Plain Text (.txt)
+              </button>
+              <button
+                onClick={downloadHtml}
+                className="py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 dark:hover:bg-indigo-950/60 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-95"
+              >
+                <span className="material-symbols-outlined text-[16px]">html</span>
+                Rich HTML (.html)
+              </button>
+            </div>
+          </div>
+
+          {/* Section 2: Share via Email Form */}
+          <form onSubmit={handleShareEmail} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Share via Registered Email</label>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="collaborator@syncpad.com"
+                  className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-4 focus:ring-primary/5 outline-none transition-all text-xs font-medium text-slate-800 dark:text-slate-100"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={isSharing}
+                  className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-on-primary rounded-xl font-bold text-xs shadow-lg shadow-primary/15 flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {isSharing ? "Sharing..." : "Share Link"}
+                </button>
+              </div>
+              <p className="text-[10px] text-outline font-medium leading-relaxed pt-1.5 px-0.5">
+                Entering an email registers this document's access permissions to their workspace instantly.
+              </p>
+            </div>
+          </form>
+
+        </div>
+
+      </div>
+    </div>
   );
 }
 
