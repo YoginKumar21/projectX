@@ -6,6 +6,7 @@ import Notes from "./pages/Notes";
 import Summarizer from "./pages/Summarizer";
 import Editor from "./pages/Editor";
 import Profile from "./pages/Profile";
+import Pricing from "./pages/Pricing";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
 import NotificationSettings from "./pages/NotificationSettings";
@@ -141,6 +142,15 @@ function App() {
         element={
           <ProtectedRoute>
             <Settings />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/pricing"
+        element={
+          <ProtectedRoute>
+            <Pricing />
           </ProtectedRoute>
         }
       />

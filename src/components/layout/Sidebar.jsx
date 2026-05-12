@@ -8,6 +8,7 @@ const navItems = [
   { label: "Code Editor", icon: "code", to: "/editor" },
   { label: "Summarizer", icon: "auto_awesome", to: "/summarizer" },
   { label: "Profile", icon: "person", to: "/profile" },
+  { label: "Plans & Pricing", icon: "workspace_premium", to: "/pricing" },
 ];
 
 function Sidebar({ isOpen, setIsOpen }) {
@@ -101,10 +102,30 @@ function Sidebar({ isOpen, setIsOpen }) {
         </div>
       </nav>
 
-      <div className="mt-auto px-6 pt-4 border-t border-outline-variant/5">
+      <div className="mt-auto px-4 pt-4 border-t border-outline-variant/5 space-y-3">
+        {/* Upgrade Teaser Banner */}
+        <NavLink
+          to="/pricing"
+          onClick={() => setIsOpen(false)}
+          className="block w-full rounded-xl overflow-hidden group cursor-pointer"
+        >
+          <div className="relative px-4 py-3 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent border border-primary/20 rounded-xl hover:border-primary/40 transition-all duration-300">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-primary/15 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-primary/25 transition-colors">
+                <span className="material-symbols-outlined text-primary text-[16px]">workspace_premium</span>
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-on-surface uppercase tracking-wider leading-none mb-0.5">Upgrade Plan</p>
+                <p className="text-[9px] text-on-surface-variant leading-none">Unlock AI Summaries & more</p>
+              </div>
+              <span className="material-symbols-outlined text-primary text-[14px] ml-auto group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+            </div>
+          </div>
+        </NavLink>
+
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 text-on-surface-variant hover:text-error transition-all duration-300 w-full group py-2"
+          className="flex items-center gap-3 text-on-surface-variant hover:text-error transition-all duration-300 w-full group py-2 px-2"
         >
           <span className="material-symbols-outlined text-[20px] transition-transform group-hover:-translate-x-1">logout</span>
           <span className="text-sm font-bold">Logout</span>
