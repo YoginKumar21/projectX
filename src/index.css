@@ -18,20 +18,34 @@
     --color-background: #f7f9fb;
     --color-on-background: #191c1e;
   }
-
-  html.dark {
-    --color-surface-container-lowest: #0f172a;
-    --color-surface: #0f172a;
-    --color-on-surface: #f1f5f9;
-    --color-on-surface-variant: #94a3b8;
-    --color-surface-container: #1e293b;
-    --color-surface-container-low: #0f172a;
-    --color-surface-container-high: #1e293b;
-    --color-surface-container-highest: #334155;
-    --color-background: #0b1120;
-    --color-on-background: #f1f5f9;
-  }
 }
+
+/* Global overrides for dark mode outside of layers to guarantee maximum specificity and precedence */
+.dark, html.dark {
+  --color-surface-container-lowest: #0f172a !important;
+  --color-surface: #0f172a !important;
+  --color-on-surface: #f1f5f9 !important;
+  --color-on-surface-variant: #cbd5e1 !important; /* brighter slate/white-ish shade */
+  --color-surface-container: #1e293b !important;
+  --color-surface-container-low: #0f172a !important;
+  --color-surface-container-high: #1e293b !important;
+  --color-surface-container-highest: #334155 !important;
+  --color-background: #0b1120 !important;
+  --color-on-background: #f8fafc !important; /* beautiful light shade of white */
+}
+
+/* Global Utility Overrides to bypass Tailwind v3 hex variable rendering opacity quirk */
+.text-on-surface { color: var(--color-on-surface) !important; }
+.text-on-surface-variant { color: var(--color-on-surface-variant) !important; }
+.text-on-background { color: var(--color-on-background) !important; }
+
+.bg-background { background-color: var(--color-background) !important; }
+.bg-surface { background-color: var(--color-surface) !important; }
+.bg-surface-container { background-color: var(--color-surface-container) !important; }
+.bg-surface-container-low { background-color: var(--color-surface-container-low) !important; }
+.bg-surface-container-high { background-color: var(--color-surface-container-high) !important; }
+.bg-surface-container-highest { background-color: var(--color-surface-container-highest) !important; }
+.bg-surface-container-lowest { background-color: var(--color-surface-container-lowest) !important; }
 
 @layer components {
   .glass-card {
