@@ -4,6 +4,7 @@ const User = require("../models/User");
 const createNotification = require("../utils/createNotification");
 
 const noteUsers = {};
+const codeRooms = {};
 
 const cursorColors = [
   "#ff4d4f",
@@ -200,11 +201,151 @@ const setupSocket = (io) => {
       }
     });
 
+    // ==========================================
+    // COLLABORATIVE CODE EDITOR (VS CODE STYLE)
+    // ==========================================
+
+    socket.on("join-room", ({ roomId, userId, userName }) => {
+      if (!roomId) return;
+
+      socket.join(`room:${roomId}`);
+      socket.codeRoomId = roomId;
+
+      if (!codeRooms[roomId]) {
+        codeRooms[roomId] = {
+          files: [
+            { name: "index.js", lang: "javascript", content: `console.log("Hello, Real-time Collaborative Editor!");\n\nfunction add(a, b) {\n  return a + b;\n}\n\nconsole.log("2 + 3 =", add(2, 3));\n` },
+            { name: "script.py", lang: "python", content: `def greet(name):\n    print(f"Hello, {name}!")\n\ngreet("Collaborators")\n` },
+            { name: "index.html", lang: "html", content: `<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body {\n      background: #0f172a;\n      color: #e2e8f0;\n      font-family: sans-serif;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n      height: 100vh;\n      margin: 0;\n    }\n    h1 {\n      color: #10b981;\n      text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);\n    }\n    p {\n      font-size: 1.1rem;\n      opacity: 0.8;\n    }\n    button {\n      background: #10b981;\n      color: white;\n      border: none;\n      padding: 10px 20px;\n      border-radius: 8px;\n      cursor: pointer;\n      font-weight: bold;\n      transition: 0.2s;\n    }\n    button:hover { background: #059669; }\n  </style>\n</head>\n<body>\n  <h1>Welcome to Collaborative SyncPad Code IDE</h1>\n  <p>Modify files on the left and see changes instantly!</p>\n  <button onclick="showAlert()">Interactive Button</button>\n  \n  <script>\n    function showAlert() {\n      alert("Interactivity works! Build your frontend application here.");\n    }\n  </script>\n</body>\n</html>\n` },
+            { name: "main.c", lang: "c", content: `#include <stdio.h>\n\nint main() {\n    printf("Hello, real-time collaborative C editor!\\n");\n    return 0;\n}\n` }
+          ],
+          users: {},
+          chat: []
+        };
+      }
+
+      const color = getUserColor(userId || socket.id);
+      codeRooms[roomId].users[socket.id] = {
+        socketId: socket.id,
+        userId: userId || socket.id,
+        userName: userName || "Anonymous Developer",
+        color,
+        activeFile: "index.js",
+        isTyping: false
+      };
+
+      // Notify user of room contents and details
+      socket.emit("room-init", {
+        files: codeRooms[roomId].files,
+        users: Object.values(codeRooms[roomId].users),
+        chat: codeRooms[roomId].chat,
+        myId: socket.id
+      });
+
+      // Broadcast users list update
+      io.to(`room:${roomId}`).emit("code-room-users", {
+        users: Object.values(codeRooms[roomId].users)
+      });
+
+      // Insert system join message
+      const sysMsg = {
+        _id: "sys_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+        sender: "system",
+        senderName: "System",
+        text: `${userName || "Developer"} joined the workspace.`,
+        createdAt: new Date()
+      };
+      codeRooms[roomId].chat.push(sysMsg);
+      io.to(`room:${roomId}`).emit("code-room-chat-message", sysMsg);
+    });
+
+    socket.on("code-sync", ({ roomId, fileName, code }) => {
+      if (!roomId || !fileName) return;
+      const room = codeRooms[roomId];
+      if (room) {
+        const file = room.files.find(f => f.name === fileName);
+        if (file) {
+          file.content = code;
+        }
+        socket.to(`room:${roomId}`).emit("code-sync-receive", { fileName, code });
+      }
+    });
+
+    socket.on("file-select", ({ roomId, fileName }) => {
+      if (!roomId || !fileName) return;
+      if (codeRooms[roomId] && codeRooms[roomId].users[socket.id]) {
+        codeRooms[roomId].users[socket.id].activeFile = fileName;
+        io.to(`room:${roomId}`).emit("code-room-users", {
+          users: Object.values(codeRooms[roomId].users)
+        });
+      }
+    });
+
+    socket.on("create-file", ({ roomId, fileName, lang }) => {
+      if (!roomId || !fileName) return;
+      const room = codeRooms[roomId];
+      if (room && !room.files.some(f => f.name === fileName)) {
+        room.files.push({ name: fileName, lang, content: "" });
+        io.to(`room:${roomId}`).emit("file-created", { files: room.files, fileName });
+      }
+    });
+
+    socket.on("delete-file", ({ roomId, fileName }) => {
+      if (!roomId || !fileName) return;
+      const room = codeRooms[roomId];
+      if (room) {
+        room.files = room.files.filter(f => f.name !== fileName);
+        io.to(`room:${roomId}`).emit("file-deleted", { files: room.files, fileName });
+      }
+    });
+
+    socket.on("chat-message", ({ roomId, userId, userName, text }) => {
+      if (!roomId || !text || !text.trim()) return;
+      if (codeRooms[roomId]) {
+        const msg = {
+          _id: "msg_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+          sender: socket.id,
+          userId,
+          senderName: userName,
+          text: text.trim(),
+          createdAt: new Date()
+        };
+        codeRooms[roomId].chat.push(msg);
+        io.to(`room:${roomId}`).emit("code-room-chat-message", msg);
+      }
+    });
+
+    socket.on("typing", ({ roomId, isTyping }) => {
+      if (!roomId) return;
+      if (codeRooms[roomId] && codeRooms[roomId].users[socket.id]) {
+        codeRooms[roomId].users[socket.id].isTyping = isTyping;
+        socket.to(`room:${roomId}`).emit("user-typing-update", {
+          socketId: socket.id,
+          userName: codeRooms[roomId].users[socket.id].userName,
+          isTyping
+        });
+      }
+    });
+
+    socket.on("cursor-move", ({ roomId, cursor }) => {
+      if (!roomId) return;
+      if (codeRooms[roomId] && codeRooms[roomId].users[socket.id]) {
+        socket.to(`room:${roomId}`).emit("cursor-update-receive", {
+          socketId: socket.id,
+          userId: codeRooms[roomId].users[socket.id].userId,
+          userName: codeRooms[roomId].users[socket.id].userName,
+          color: codeRooms[roomId].users[socket.id].color,
+          cursor
+        });
+      }
+    });
+
     // =========================
     // DISCONNECT
     // =========================
     socket.on("disconnect", () => {
       const noteId = socket.noteId;
+      const roomId = socket.codeRoomId;
 
       if (noteId && noteUsers[noteId]) {
         delete noteUsers[noteId][socket.id];
@@ -229,6 +370,34 @@ const setupSocket = (io) => {
 
         if (Object.keys(noteUsers[noteId]).length === 0) {
           delete noteUsers[noteId];
+        }
+      }
+
+      if (roomId && codeRooms[roomId]) {
+        const userObj = codeRooms[roomId].users[socket.id];
+        const userName = userObj ? userObj.userName : "Someone";
+        
+        delete codeRooms[roomId].users[socket.id];
+
+        // Notify room members
+        io.to(`room:${roomId}`).emit("code-room-users", {
+          users: Object.values(codeRooms[roomId].users)
+        });
+
+        // Push a system left message
+        const sysMsg = {
+          _id: "sys_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+          sender: "system",
+          senderName: "System",
+          text: `${userName} left the workspace.`,
+          createdAt: new Date()
+        };
+        codeRooms[roomId].chat.push(sysMsg);
+        io.to(`room:${roomId}`).emit("code-room-chat-message", sysMsg);
+
+        // Clean up empty room
+        if (Object.keys(codeRooms[roomId].users).length === 0) {
+          delete codeRooms[roomId];
         }
       }
 

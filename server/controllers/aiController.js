@@ -1,4 +1,4 @@
-const OpenAI = require("openai");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const stripHtml = (html = "") => {
   return html
@@ -7,16 +7,6 @@ const stripHtml = (html = "") => {
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-};
-
-const getOpenAIClient = () => {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("OPENAI_API_KEY is missing in server/.env");
-  }
-
-  return new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
 };
 
 // POST /api/ai/action
@@ -159,7 +149,16 @@ exports.handleAIAction = async (req, res) => {
         });
     }
 
-    const client = getOpenAIClient();
+    if (!process.env.GEMINI_KEY) {
+      throw new Error("GEMINI_KEY is missing in server/.env");
+    }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      systemInstruction: "You are a smart AI assistant inside a premium collaborative notes app. Your output should be useful, clean, directly usable inside the product, and well structured.",
+      generationConfig: { maxOutputTokens: 8192 }
+    });
 
     let userContent = `${instruction}\n\nCurrent Note:\n${cleanContent}`;
 
@@ -187,23 +186,11 @@ ${versionText}`;
       userContent += `\n\nVersion History:\n${normalizedHistory}`;
     }
 
-    const response = await client.responses.create({
-      model: "gpt-4.1-mini",
-      input: [
-        {
-          role: "system",
-          content:
-            "You are a smart AI assistant inside a premium collaborative notes app. Your output should be useful, clean, directly usable inside the product, and well structured.",
-        },
-        {
-          role: "user",
-          content: userContent,
-        },
-      ],
-    });
+    const response = await model.generateContent(userContent);
+    const replyText = response.response.text();
 
     return res.json({
-      result: response.output_text || "",
+      result: replyText || "",
     });
   } catch (error) {
     console.error("AI Action Error:", error.message);
@@ -228,43 +215,84 @@ exports.handleAIChat = async (req, res) => {
     const cleanContent = stripHtml(content);
     const limitedHistory = Array.isArray(history) ? history.slice(-8) : [];
 
-    const input = [
-      {
-        role: "system",
-        content:
-          "You are an intelligent assistant inside a collaborative notes app. Answer mainly using the user's current note and request. Be concise, helpful, and clear.",
-      },
+    const contents = [
       {
         role: "user",
-        content:
-          `Here is the current note content:\n\n${cleanContent}\n\n` +
-          `Use this note as the main context while answering.`,
-      },
-      ...limitedHistory.map((item) => ({
-        role: item.role === "assistant" ? "assistant" : "user",
-        content: item.content,
-      })),
-      {
-        role: "user",
-        content: message,
-      },
+        parts: [{ text: `Here is the current note/code content:\n\n${cleanContent}\n\nUse this note/code as the main context while answering.` }]
+      }
     ];
 
-    const client = getOpenAIClient();
-
-    const response = await client.responses.create({
-      model: "gpt-4.1-mini",
-      input,
+    limitedHistory.forEach((item) => {
+      contents.push({
+        role: item.role === "assistant" ? "model" : "user",
+        parts: [{ text: item.content }]
+      });
     });
 
-    return res.json({
-      reply: response.output_text || "",
+    contents.push({
+      role: "user",
+      parts: [{ text: message }]
     });
+
+    if (!process.env.GEMINI_KEY) {
+      throw new Error("GEMINI_KEY is missing in server/.env");
+    }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
+    
+    // Contextual Awareness: Provide clear instructions for active code analysis vs fresh new code generation
+    const systemInstruction = 
+      "You are a high-performance, intelligent AI assistant inside a collaborative real-time code editor.\n\n" +
+      "Below is the current active code buffer open in the user's Monaco Editor canvas:\n" +
+      `[ACTIVE MONACO EDITOR CODE BUFFER]:\n\`\`\`\n${cleanContent}\n\`\`\`\n\n` +
+      "OPERATING INSTRUCTIONS:\n" +
+      "1. REFERRING TO ACTIVE CODE: If the user refers to their editor code (e.g. 'look at my code', 'explain this', 'debug this', 'fix my code', 'why does this fail'), " +
+      "analyze and reference the [ACTIVE MONACO EDITOR CODE BUFFER] above. Provide exact corrections, line references, or optimized suggestions based on it.\n" +
+      "2. INDEPENDENT CODE GENERATION: If the user asks for brand-new, independent code (e.g. 'generate a script to add 2 numbers', 'write a function', " +
+      "'give me a quicksort form', 'write code for...'), DO NOT try to merge, mix, or confuse it with the active editor code. " +
+      "Write the requested utility from scratch, cleanly, with complete instructions and copy-pasteable blocks.";
+
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      systemInstruction: systemInstruction,
+      generationConfig: { maxOutputTokens: 8192 }
+    });
+
+    // Set streaming headers
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Transfer-Encoding", "chunked");
+
+    // Streaming Responses: Use streamGenerateContent method
+    const result = await model.generateContentStream({ contents });
+    for await (const chunk of result.stream) {
+      const chunkText = chunk.text();
+      res.write(chunkText);
+    }
+    res.end();
   } catch (error) {
-    console.error("AI Chat Error:", error.message);
-    return res.status(500).json({
-      message: "AI chat failed",
-      error: error.message,
-    });
+    console.error("AI Chat Error:", error);
+    
+    // Error Handling: If API returns a 429 error, display "AI is busy, please wait 10 seconds" message
+    const isRateLimit = error.status === 429 || error.statusCode === 429 || (error.message && error.message.includes("429"));
+    
+    if (isRateLimit) {
+      if (!res.headersSent) {
+        return res.status(429).json({
+          message: "AI is busy, please wait 10 seconds"
+        });
+      } else {
+        res.write("\n\n[AI is busy, please wait 10 seconds]");
+        return res.end();
+      }
+    }
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        message: "AI chat failed",
+        error: error.message,
+      });
+    } else {
+      res.end();
+    }
   }
 };
