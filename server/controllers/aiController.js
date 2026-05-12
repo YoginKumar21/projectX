@@ -1,4 +1,5 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenAI } = require("@google/genai");
 
 const stripHtml = (html = "") => {
   return html
@@ -205,7 +206,7 @@ ${versionText}`;
 // POST /api/ai/chat
 exports.handleAIChat = async (req, res) => {
   try {
-    const { message, content, history = [], thought_signature } = req.body;
+    const { message, content, history = [] } = req.body;
 
     if (!message || content === undefined) {
       return res.status(400).json({
@@ -216,43 +217,20 @@ exports.handleAIChat = async (req, res) => {
     const cleanContent = stripHtml(content);
     const limitedHistory = Array.isArray(history) ? history.slice(-8) : [];
 
-    const contents = [
-      {
-        role: "user",
-        parts: [{ text: `Here is the current note/code content:\n\n${cleanContent}\n\nUse this note/code as the main context while answering.` }]
-      }
-    ];
-
-    limitedHistory.forEach((item) => {
-      const part = { text: item.content };
-      if (item.thought_signature) {
-        part.thought_signature = item.thought_signature;
-      }
-      contents.push({
-        role: item.role === "assistant" ? "model" : "user",
-        parts: [part]
-      });
-    });
-
-    const userPart = { text: message };
-    if (thought_signature) {
-      userPart.thought_signature = thought_signature;
-    }
-    contents.push({
-      role: "user",
-      parts: [userPart]
-    });
-
-    const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
+    // Ensure we use the exact GEMINI_API_KEY from env
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error("GEMINI_API_KEY or GEMINI_KEY is missing in server/.env");
+      throw new Error("GEMINI_API_KEY is missing in server/.env");
     }
 
-    const genAI = new GoogleGenerativeAI({ apiKey });
-    
-    // Contextual Awareness: Provide clear instructions for active code analysis vs fresh new code generation
+    // Initialize with the new official GoogleGenAI SDK
+    const ai = new GoogleGenAI({
+      apiKey: apiKey
+    });
+
+    // Provide the dynamic editor code context cleanly
     const systemInstruction = 
-      "You are a high-performance, intelligent AI assistant inside a collaborative real-time code editor.\n\n" +
+      "You are a professional coding assistant inside a collaborative real-time code editor.\n\n" +
       "Below is the current active code buffer open in the user's Monaco Editor canvas:\n" +
       `[ACTIVE MONACO EDITOR CODE BUFFER]:\n\`\`\`\n${cleanContent}\n\`\`\`\n\n` +
       "OPERATING INSTRUCTIONS:\n" +
@@ -262,60 +240,39 @@ exports.handleAIChat = async (req, res) => {
       "'give me a quicksort form', 'write code for...'), DO NOT try to merge, mix, or confuse it with the active editor code. " +
       "Write the requested utility from scratch, cleanly, with complete instructions and copy-pasteable blocks.";
 
-    const model = genAI.getGenerativeModel({
+    // Convert history cleanly to standard GenAI structure
+    const chatHistory = limitedHistory.map(item => ({
+      role: item.role === "assistant" ? "model" : "user",
+      parts: [{ text: item.content || "" }]
+    }));
+
+    // Start Chat Session using Official SDK
+    const chat = await ai.chats.create({
       model: "gemini-1.5-flash",
-      systemInstruction: systemInstruction,
-      generationConfig: { maxOutputTokens: 8192 }
+      history: chatHistory,
+      config: {
+        systemInstruction: systemInstruction
+      }
     });
 
-    // Set streaming headers
+    // Send message and stream the content back so it renders word-by-word instantly in the UI
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.setHeader("Transfer-Encoding", "chunked");
 
-    // Streaming Responses: Use streamGenerateContent method
-    const result = await model.generateContentStream({ contents });
-    for await (const chunk of result.stream) {
-      const chunkText = chunk.text();
-      res.write(chunkText);
-    }
-
-    // Capture the thought_signature returned in the model's response
-    try {
-      const response = await result.response;
-      const candidate = response.candidates?.[0];
-      const modelThoughtSignature = candidate?.thoughtSignature || candidate?.thought_signature;
-      if (modelThoughtSignature) {
-        // Expose via exposed headers and trailing stream block for absolute robustness
-        res.setHeader("X-Thought-Signature", modelThoughtSignature);
-        res.setHeader("Access-Control-Expose-Headers", "X-Thought-Signature");
-        res.write(`\n\n__THOUGHT_SIGNATURE__:${modelThoughtSignature}`);
+    const responseStream = await chat.sendMessageStream({ message: message });
+    for await (const chunk of responseStream) {
+      if (chunk.text) {
+        res.write(chunk.text);
       }
-    } catch (sigErr) {
-      console.warn("Failed to retrieve model thought signature:", sigErr.message);
     }
-
     res.end();
   } catch (error) {
-    console.error("AI Chat Error:", error);
+    console.error("AI Chat Error:", error.message);
     
     // Emit socket event to prevent the UI from hanging
     const io = req.app.get("io");
     if (io && req.user && req.user.id) {
       io.to(`user:${req.user.id}`).emit("ai-error", { message: error.message });
-    }
-
-    // Error Handling: If API returns a 429 error, display "AI is busy, please wait 10 seconds" message
-    const isRateLimit = error.status === 429 || error.statusCode === 429 || (error.message && error.message.includes("429"));
-    
-    if (isRateLimit) {
-      if (!res.headersSent) {
-        return res.status(429).json({
-          message: "AI is busy, please wait 10 seconds"
-        });
-      } else {
-        res.write("\n\n[AI is busy, please wait 10 seconds]");
-        return res.end();
-      }
     }
 
     if (!res.headersSent) {
