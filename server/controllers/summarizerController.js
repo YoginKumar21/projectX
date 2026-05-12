@@ -17,17 +17,26 @@ function cleanupFile(filePath) {
 }
 
 async function extractPdfText(filePath) {
-  // Simple PDF to Text parser fallback
+  const parser = new PDFParse({ data: fs.readFileSync(filePath) });
   try {
-    const dataBuffer = fs.readFileSync(filePath);
-    // As a robust text extraction approach, if pdf-parse fails or is not complete, we can read strings directly
-    const textContent = dataBuffer.toString("utf-8").replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, "");
-    return textContent.substring(0, 100000).trim() || "Empty PDF document or unreadable binary encoding.";
+    const result = await parser.getText();
+    let extractedText = result.text || "";
+    if (extractedText.startsWith("undefined")) {
+      extractedText = extractedText.replace(/^undefined/, "").trim();
+    }
+    return extractedText;
   } catch (err) {
     console.error("PDF Parsing error:", err);
     return "Could not extract text from this PDF file.";
+  } finally {
+    try {
+      await parser.destroy();
+    } catch (destroyErr) {
+      console.warn("Failed to destroy PDF parser:", destroyErr.message);
+    }
   }
 }
+
 
 async function extractDocumentText(file) {
   const extension = path.extname(file.originalname || file.path).toLowerCase();
