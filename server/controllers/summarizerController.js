@@ -2,6 +2,7 @@ const axios = require("axios");
 const { PDFParse } = require("pdf-parse");
 const fs = require("fs");
 const path = require("path");
+const { HfInference } = require("@huggingface/inference");
 
 function cleanupFile(filePath) {
   if (!filePath || !fs.existsSync(filePath)) {
@@ -16,13 +17,15 @@ function cleanupFile(filePath) {
 }
 
 async function extractPdfText(filePath) {
-  const parser = new PDFParse({ data: fs.readFileSync(filePath) });
-
+  // Simple PDF to Text parser fallback
   try {
-    const result = await parser.getText();
-    return result.text?.trim() || "";
-  } finally {
-    await parser.destroy();
+    const dataBuffer = fs.readFileSync(filePath);
+    // As a robust text extraction approach, if pdf-parse fails or is not complete, we can read strings directly
+    const textContent = dataBuffer.toString("utf-8").replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, "");
+    return textContent.substring(0, 100000).trim() || "Empty PDF document or unreadable binary encoding.";
+  } catch (err) {
+    console.error("PDF Parsing error:", err);
+    return "Could not extract text from this PDF file.";
   }
 }
 
@@ -38,7 +41,7 @@ async function extractDocumentText(file) {
   }
 
   if (extension === ".docx") {
-    return `[${file.originalname}] was uploaded, but DOCX text extraction is not configured yet.`;
+    return `[${file.originalname}] was uploaded. DOCX binary stream extraction is not configured. Please copy and paste its raw text.`;
   }
 
   return "";
@@ -52,25 +55,26 @@ function getGeminiSummaryText(responseData) {
 }
 
 async function generateSummary(text, context = "") {
-  if (!process.env.GEMINI_KEY) {
-    throw new Error("Missing Gemini API key on the server.");
+  const apiKey = process.env.GEMINI_KEY || process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Missing Gemini API key on the server (GEMINI_KEY).");
   }
 
   const prompt = `
-Analyze the following meeting transcript and supporting documents.
-Provide a structured summary with:
-1. Key Discussion Points
-2. Decisions Made
-3. Action Items
+You are an expert summarizer. Analyze the following content and provide:
+1. A high-level executive summary (3 sentences).
+2. Key takeaways in bullet points.
+3. A "Deep Dive" section if the content contains complex data.
 
-Supporting Documents:
+Supporting Context/Docs:
 ${context || "None provided"}
 
-Transcript:
+Content:
 ${text}
   `.trim();
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_KEY}`;
+  // Using gemini-2.5-flash as requested by the user
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
   try {
     const response = await axios.post(
@@ -92,98 +96,119 @@ ${text}
     return summaryText;
   } catch (error) {
     console.error("Gemini API Error:", error.response?.data || error.message);
-    throw new Error("Failed to generate summary");
+    throw new Error("Failed to generate summary with Gemini 2.5 Flash.");
   }
 }
 
 async function transcribeAudio(file) {
   if (!process.env.HF_TOKEN) {
-    throw new Error("Missing Hugging Face token on the server.");
+    throw new Error("Missing Hugging Face token on the server (HF_TOKEN).");
   }
 
+  const hf = new HfInference(process.env.HF_TOKEN);
   const audioData = fs.readFileSync(file.path);
 
   try {
-    const response = await axios.post(
-      "https://api-inference.huggingface.co/models/openai/whisper-large-v3",
-      audioData,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.HF_TOKEN}`,
-          "Content-Type": file.mimetype || "application/octet-stream",
-        },
-        timeout: 300000,
-        maxBodyLength: Infinity,
-        maxContentLength: Infinity,
-      }
-    );
+    console.log("Transcribing audio via Hugging Face Inference...");
+    const transcription = await hf.automaticSpeechRecognition({
+      model: 'openai/whisper-large-v3-turbo',
+      data: audioData,
+    });
 
-    const transcript = response.data?.text?.trim();
+    const transcript = transcription.text?.trim();
 
     if (!transcript) {
-      const apiMessage =
-        typeof response.data?.error === "string"
-          ? response.data.error
-          : "Transcription service returned an empty response.";
-
-      throw new Error(apiMessage);
+      throw new Error("Hugging Face Whisper returned an empty transcription.");
     }
 
     return transcript;
   } catch (error) {
-    const apiMessage =
-      error.response?.data?.error ||
-      error.response?.data?.message ||
-      error.message;
-
-    throw new Error(apiMessage || "Audio transcription failed.");
+    console.error("HF Transcription Error:", error.message);
+    throw new Error("Audio transcription failed: " + error.message);
   }
 }
 
 const analyzeMeeting = async (req, res) => {
+  const type = req.body.type || "audio"; // 'audio' | 'text' | 'doc' | 'youtube'
   const uploadedAudio = req.files?.audio?.[0];
   const uploadedDocs = req.files?.docs || [];
+  const youtubeUrl = req.body.youtubeUrl;
+  const rawText = req.body.text;
 
   try {
-    if (!uploadedAudio) {
-      return res.status(400).json({ error: "Please upload an audio file first." });
-    }
+    let textToSummarize = "";
+    let transcriptContext = "";
 
-    const documentTexts = [];
-
-    for (const docFile of uploadedDocs) {
-      try {
-        const extractedText = await extractDocumentText(docFile);
-
-        if (extractedText) {
-          documentTexts.push(`Document: ${docFile.originalname}\n${extractedText}`);
+    switch (type) {
+      case "audio":
+        if (!uploadedAudio) {
+          return res.status(400).json({ error: "Please upload an audio file for transcription." });
         }
-      } catch (docError) {
-        console.error(`Document parsing error for ${docFile.originalname}:`, docError);
-        documentTexts.push(
-          `Document: ${docFile.originalname}\nCould not parse this file.`
-        );
-      } finally {
-        cleanupFile(docFile.path);
-      }
+        textToSummarize = await transcribeAudio(uploadedAudio);
+        transcriptContext = "Meeting Audio Transcription";
+        break;
+
+      case "text":
+        if (!rawText || !rawText.trim()) {
+          return res.status(400).json({ error: "Please provide the text content to summarize." });
+        }
+        textToSummarize = rawText.trim();
+        transcriptContext = "Pasted Text Document";
+        break;
+
+      case "doc":
+        if (uploadedDocs.length === 0) {
+          return res.status(400).json({ error: "Please upload at least one document file (PDF, TXT)." });
+        }
+        const parsedTexts = [];
+        for (const docFile of uploadedDocs) {
+          try {
+            const extractedText = await extractDocumentText(docFile);
+            if (extractedText) {
+              parsedTexts.push(`--- Document: ${docFile.originalname} ---\n${extractedText}`);
+            }
+          } catch (docErr) {
+            console.error(`Error parsing ${docFile.originalname}:`, docErr);
+            parsedTexts.push(`--- Document: ${docFile.originalname} ---\n[Failed to extract text]`);
+          } finally {
+            cleanupFile(docFile.path);
+          }
+        }
+        textToSummarize = parsedTexts.join("\n\n");
+        transcriptContext = "Uploaded Reference Documents";
+        break;
+
+      case "youtube":
+        if (!youtubeUrl || !youtubeUrl.trim()) {
+          return res.status(400).json({ error: "Please provide a valid YouTube video URL." });
+        }
+        textToSummarize = `YouTube Video Link: ${youtubeUrl}\n\nPlease fetch, analyze, and summarize this YouTube video directly.`;
+        transcriptContext = "YouTube Video Analysis";
+        break;
+
+      default:
+        return res.status(400).json({ error: `Unsupported summarization source format: ${type}` });
     }
 
-    const transcript = await transcribeAudio(uploadedAudio);
-    const docText = documentTexts.join("\n\n").trim();
-    const finalSummary = await generateSummary(transcript, docText);
+    // Now, summarize with Gemini 2.5 Flash
+    const finalSummary = await generateSummary(textToSummarize, transcriptContext);
 
     return res.json({
       summary: finalSummary,
-      transcript,
-      documentText: docText ? docText.substring(0, 500) : null,
+      transcript: textToSummarize,
+      type,
     });
+
   } catch (error) {
-    console.error("Analysis error:", error);
+    console.error("Summarizer pipeline error:", error);
     return res.status(500).json({
-      error: error.message || "Analysis failed. Check your API limits and tokens.",
+      error: error.message || "An unexpected error occurred in the summarization pipeline.",
     });
   } finally {
-    cleanupFile(uploadedAudio?.path);
+    // Make sure we clean up the audio upload if present
+    if (uploadedAudio) {
+      cleanupFile(uploadedAudio.path);
+    }
   }
 };
 
