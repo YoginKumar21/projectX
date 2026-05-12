@@ -23,7 +23,7 @@ function Sidebar({ isOpen, setIsOpen }) {
 
   return (
     <aside 
-      className={`fixed left-0 top-0 h-screen bg-surface-container-lowest/90 backdrop-blur-2xl border-r border-outline-variant/10 flex flex-col py-4 z-50 transition-all duration-500 ease-[0.22,1,0.36,1] ${
+      className={`fixed left-0 top-0 h-screen bg-white dark:bg-[#0f172a] border-r border-slate-100 dark:border-slate-800 flex flex-col py-4 z-50 transition-all duration-500 ease-[0.22,1,0.36,1] ${
         isOpen ? "translate-x-0 w-[240px]" : "-translate-x-full lg:translate-x-0 lg:w-[240px]"
       }`}
     >

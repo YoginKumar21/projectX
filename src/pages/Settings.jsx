@@ -17,7 +17,21 @@ function Settings() {
       document.documentElement.classList.remove("dark");
     }
     localStorage.setItem("theme", theme);
+    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new CustomEvent("syncpad-theme-updated", { detail: theme }));
   }, [theme]);
+
+  useEffect(() => {
+    const handleThemeUpdated = () => {
+      setTheme(localStorage.getItem("theme") || "light");
+    };
+    window.addEventListener("storage", handleThemeUpdated);
+    window.addEventListener("syncpad-theme-updated", handleThemeUpdated);
+    return () => {
+      window.removeEventListener("storage", handleThemeUpdated);
+      window.removeEventListener("syncpad-theme-updated", handleThemeUpdated);
+    };
+  }, []);
 
   const handleSaveProfile = (e) => {
     e.preventDefault();

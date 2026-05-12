@@ -24,7 +24,7 @@ function AppShell({
   }, [isSidebarOpen]);
 
   return (
-    <div className="min-h-screen bg-background font-body-md text-on-surface transition-colors duration-300 relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#f7f9fb] dark:bg-[#0b1120] font-body-md text-[#191c1e] dark:text-[#f1f5f9] transition-colors duration-300 relative overflow-x-hidden">
       {/* Premium Background Accents */}
       <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px] pointer-events-none z-0" />
       <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-secondary/5 blur-[120px] pointer-events-none z-0" />

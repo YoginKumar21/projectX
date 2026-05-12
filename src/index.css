@@ -5,6 +5,34 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --color-surface-container-lowest: #ffffff;
+    --color-surface: #f7f9fb;
+    --color-on-surface: #191c1e;
+    --color-on-surface-variant: #464554;
+    --color-surface-container: #eceef0;
+    --color-surface-container-low: #f2f4f6;
+    --color-surface-container-high: #e6e8ea;
+    --color-surface-container-highest: #e0e3e5;
+    --color-background: #f7f9fb;
+    --color-on-background: #191c1e;
+  }
+
+  html.dark {
+    --color-surface-container-lowest: #0f172a;
+    --color-surface: #0f172a;
+    --color-on-surface: #f1f5f9;
+    --color-on-surface-variant: #94a3b8;
+    --color-surface-container: #1e293b;
+    --color-surface-container-low: #0f172a;
+    --color-surface-container-high: #1e293b;
+    --color-surface-container-highest: #334155;
+    --color-background: #0b1120;
+    --color-on-background: #f1f5f9;
+  }
+}
+
 @layer components {
   .glass-card {
     @apply bg-surface-container-lowest/80 backdrop-blur-xl border border-outline-variant/10 shadow-lg shadow-primary/5;
@@ -15,6 +43,13 @@
     backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.4);
     box-shadow: 0 8px 32px 0 rgba(99, 102, 241, 0.08);
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .dark .glass-card-premium {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
   }
 
   .gradient-border {
@@ -95,15 +130,13 @@
   }
 
   body {
-    @apply bg-[#f6f7fb] text-slate-900 antialiased transition-colors duration-300;
+    background-color: var(--color-background);
+    color: var(--color-on-background);
+    @apply antialiased transition-colors duration-300;
   }
 
   #root {
     @apply min-h-screen;
-  }
-
-  body.dark {
-    @apply bg-[#0b1120] text-slate-100;
   }
 
   * {

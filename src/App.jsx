@@ -10,9 +10,19 @@ import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
 import NotificationSettings from "./pages/NotificationSettings";
 import NoteReader from "./pages/NoteReader";
+import { useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
   return (
     <Routes>
       <Route path="/login" element={<Login />} />

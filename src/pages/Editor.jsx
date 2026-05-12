@@ -97,6 +97,23 @@ function Editor() {
   ]);
   const [aiLoading, setAiLoading] = useState(false);
   const [lastThoughtSignature, setLastThoughtSignature] = useState("");
+  const [editorTheme, setEditorTheme] = useState(
+    localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs"
+  );
+
+  useEffect(() => {
+    const handleThemeChange = () => {
+      setEditorTheme(localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs");
+    };
+
+    window.addEventListener("storage", handleThemeChange);
+    window.addEventListener("syncpad-theme-updated", handleThemeChange);
+
+    return () => {
+      window.removeEventListener("storage", handleThemeChange);
+      window.removeEventListener("syncpad-theme-updated", handleThemeChange);
+    };
+  }, []);
 
   // Refs for real-time syncing of state inside callbacks
   const activeFileNameRef = useRef(activeFileName);
@@ -792,7 +809,7 @@ function Editor() {
     return (
       <AppShell>
         <div className="flex items-center justify-center min-h-[calc(100vh-64px-40px)] select-none">
-          <div className="relative w-full max-w-xl p-8 bg-surface-container-lowest/80 border border-outline-variant/10 rounded-[32px] shadow-2xl backdrop-blur-2xl">
+          <div className="relative w-full max-w-xl p-8 bg-white dark:bg-[#0f172a] border border-slate-100 dark:border-slate-800 rounded-[32px] shadow-2xl backdrop-blur-2xl">
             {/* Absolute visual highlights */}
             <div className="absolute -top-12 -left-12 w-32 h-32 bg-primary/20 rounded-full blur-[48px]" />
             <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-secondary/20 rounded-full blur-[48px]" />
@@ -820,7 +837,7 @@ function Editor() {
                   value={inputUserName}
                   onChange={(e) => setInputUserName(e.target.value)}
                   placeholder="Enter your name..."
-                  className="w-full px-5 py-4 bg-surface-container-low/50 border border-outline-variant/10 rounded-2xl focus:border-primary/40 focus:ring-4 focus:ring-primary/5 outline-none font-bold text-on-surface text-sm transition-all duration-300"
+                  className="w-full px-5 py-4 bg-[#f2f4f6] dark:bg-[#1e293b] border border-slate-100 dark:border-slate-800 outline-none font-bold text-on-surface text-sm transition-all duration-300 rounded-2xl focus:border-primary/40 focus:ring-4 focus:ring-primary/5"
                 />
               </div>
 
@@ -843,7 +860,7 @@ function Editor() {
                   value={inputRoomId}
                   onChange={(e) => setInputRoomId(e.target.value.toUpperCase())}
                   placeholder="Paste or Type Room Workspace ID (e.g. SYNC-4829)"
-                  className="w-full px-5 py-4 bg-surface-container-low/50 border border-outline-variant/10 rounded-2xl focus:border-primary/40 focus:ring-4 focus:ring-primary/5 outline-none font-bold text-on-surface text-sm tracking-widest transition-all duration-300"
+                  className="w-full px-5 py-4 bg-[#f2f4f6] dark:bg-[#1e293b] border border-slate-100 dark:border-slate-800 outline-none font-bold text-on-surface text-sm tracking-widest transition-all duration-300 rounded-2xl focus:border-primary/40 focus:ring-4 focus:ring-primary/5"
                 />
               </div>
 
@@ -1150,7 +1167,7 @@ function Editor() {
                           <EditorMonaco
                             height="100%"
                             language={getLanguageFromFilename(activeFileName)}
-                            theme="vs-dark"
+                            theme={editorTheme}
                             value={code}
                             onChange={handleEditorChange}
                             onMount={handleEditorDidMount}

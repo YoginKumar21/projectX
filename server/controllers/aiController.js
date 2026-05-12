@@ -157,7 +157,7 @@ exports.handleAIAction = async (req, res) => {
 
     const genAI = new GoogleGenerativeAI({ apiKey });
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       systemInstruction: "You are a smart AI assistant inside a premium collaborative notes app. Your output should be useful, clean, directly usable inside the product, and well structured.",
       generationConfig: { maxOutputTokens: 8192 }
     });
@@ -248,7 +248,7 @@ exports.handleAIChat = async (req, res) => {
 
     // Start Chat Session using Official SDK
     const chat = await ai.chats.create({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       history: chatHistory,
       config: {
         systemInstruction: systemInstruction

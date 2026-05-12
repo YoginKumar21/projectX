@@ -214,7 +214,7 @@ function Notes() {
 
         {/* Tabs and Actions */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex bg-surface-container-low/50 p-1.5 rounded-2xl gap-1 border border-outline-variant/10 overflow-x-auto no-scrollbar">
+          <div className="flex bg-[#f2f4f6] dark:bg-[#0f172a] p-1.5 rounded-2xl gap-1 border border-slate-100 dark:border-slate-800 overflow-x-auto no-scrollbar">
             {TABS.map(tab => (
               <button
                 key={tab.key}
@@ -233,7 +233,7 @@ function Notes() {
               </button>
             ))}
           </div>
-          <button className="flex items-center justify-center gap-2 px-4 py-2 border border-outline-variant/10 rounded-xl text-on-surface-variant font-bold text-xs hover:bg-surface-container transition-colors w-full md:w-auto">
+          <button className="flex items-center justify-center gap-2 px-4 py-2 border border-slate-100 dark:border-slate-800 rounded-xl text-on-surface-variant font-bold text-xs hover:bg-surface-container transition-colors w-full md:w-auto">
             <span className="material-symbols-outlined text-[18px]">filter_list</span>
             Tags & Filters
           </button>

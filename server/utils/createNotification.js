@@ -17,7 +17,7 @@ const createNotification = async ({
     }
 
     const notification = await Notification.create({
-      user: targetUser,
+      recipient: targetUser,
       sender,
       note,
       type,
