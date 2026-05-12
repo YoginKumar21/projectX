@@ -765,33 +765,16 @@ function Editor() {
         }
       }
     } catch (err) {
-      console.warn("Server AI key failed or disconnected, generating offline recommendations...", err);
-      // Clean up the placeholder if we hit an error early on
-      setAiMessages(prev => prev.filter(m => m._id !== aiMessageId));
-
-      // Offline fallback simulations
-      setTimeout(() => {
-        let codeHint = "Your active code looks structured well.";
-        if (code.includes("function") || code.includes("def")) {
-          codeHint = "I spotted your algorithm routines. To make this production-ready, ensure you write input argument sanitation wrappers.";
+      console.error("AI Error:", err);
+      setAiMessages(prev => prev.map(m => {
+        if (m._id === aiMessageId) {
+          return {
+            ...m,
+            text: "Server busy, try after some time"
+          };
         }
-        const simReplies = [
-          `I analyzed your current file **${activeFileName}**.\n\nHere is a recommendation to improve its efficiency:\n\`\`\`javascript\n// Optimized Version\n// Applied clean modular closures and speed metrics\n${code}\n\`\`\`\nWould you like me to generate explanatory comments?`,
-          `Your script in **${activeFileName}** is clean. To prevent execution locks, consider implementing a robust global error-handling try-catch block:\n\n\`\`\`javascript\n// Production Wrapper Suggestion\ntry {\n  // your main logic here...\n} catch (err) {\n  console.error("Workflow failed: ", err.message);\n}\n\`\`\`\nWhat other logical loops can I help you construct?`
-        ];
-        const randomSim = simReplies[Math.floor(Math.random() * simReplies.length)];
-
-        setAiMessages(prev => [
-          ...prev,
-          {
-            _id: "ai_resp_" + Date.now(),
-            sender: "assistant",
-            senderName: "AI Companion (Offline Mode)",
-            text: `[Offline Simulation] ${codeHint}\n\n${randomSim}`,
-            createdAt: new Date()
-          }
-        ]);
-      }, 800);
+        return m;
+      }));
     } finally {
       setAiLoading(false);
     }
