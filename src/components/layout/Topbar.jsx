@@ -81,6 +81,26 @@ function Topbar({
     }
   };
 
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    setSearchTerm(val);
+
+    const searchablePaths = ["/dashboard", "/notes", "/shared", "/favorites", "/tags"];
+    const currentPath = window.location.pathname;
+
+    if (!searchablePaths.includes(currentPath)) {
+      navigate(`/notes?search=${encodeURIComponent(val)}`);
+    } else {
+      const params = new URLSearchParams(window.location.search);
+      if (val.trim()) {
+        params.set("search", val);
+      } else {
+        params.delete("search");
+      }
+      navigate({ pathname: currentPath, search: params.toString() }, { replace: true });
+    }
+  };
+
   return (
     <header className="h-[64px] fixed top-0 right-0 z-40 bg-surface-container-lowest/70 backdrop-blur-xl border-b border-outline-variant/5 lg:ml-[240px] lg:w-[calc(100%-240px)] w-full flex items-center justify-between px-[20px] transition-all duration-300">
       <div className="flex items-center gap-4 flex-1">
@@ -104,7 +124,7 @@ function Topbar({
             placeholder="Search notes, tags, files..."
             type="text"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
           />
         </div>
       </div>

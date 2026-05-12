@@ -84,6 +84,16 @@ function Dashboard() {
     }
   }, [location.search]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const searchParam = params.get("search");
+    if (searchParam !== null) {
+      setSearchTerm(searchParam);
+    } else {
+      setSearchTerm("");
+    }
+  }, [location.search]);
+
   const resetEditor = () => {
     setTitle("");
     setContent("");
@@ -150,20 +160,15 @@ function Dashboard() {
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
-    const plainTextContent = content.replace(/<[^>]*>/g, "").trim();
-
-    if (!title.trim() && !plainTextContent && attachments.length === 0) {
-      toast.error("Please add a title, content, or attachment");
-      return;
-    }
+    const finalTitle = title.trim() || "Untitled Note";
 
     try {
       if (editingId) {
-        const res = await API.put(`/notes/${editingId}`, { title, content, attachments, tags, isPinned });
+        const res = await API.put(`/notes/${editingId}`, { title: finalTitle, content, attachments, tags, isPinned });
         setNotes((prev) => prev.map((note) => (note._id === editingId ? res.data : note)));
         toast.success("Note updated successfully");
       } else {
-        const res = await API.post("/notes", { title, content, attachments, tags, isPinned });
+        const res = await API.post("/notes", { title: finalTitle, content, attachments, tags, isPinned });
         if (activeFilter === "active") setNotes((prev) => [res.data, ...prev]);
         toast.success("Note created successfully");
       }

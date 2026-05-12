@@ -57,6 +57,16 @@ function Notes() {
     }
   }, [location.search]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const searchParam = params.get("search");
+    if (searchParam !== null) {
+      setSearchTerm(searchParam);
+    } else {
+      setSearchTerm("");
+    }
+  }, [location.search]);
+
   const counts = useMemo(() => {
     return {
       all: notes.filter(n => !n.isArchived && !n.isTrashed).length,
@@ -110,13 +120,14 @@ function Notes() {
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
+    const finalTitle = title.trim() || "Untitled Note";
     try {
       if (editingNote) {
-        const res = await API.put(`/notes/${editingNote._id}`, { title, content, tags, isPinned });
+        const res = await API.put(`/notes/${editingNote._id}`, { title: finalTitle, content, tags, isPinned });
         setNotes(prev => prev.map(n => n._id === editingNote._id ? res.data : n));
         toast.success("Note updated");
       } else {
-        const res = await API.post("/notes", { title, content, tags, isPinned });
+        const res = await API.post("/notes", { title: finalTitle, content, tags, isPinned });
         setNotes(prev => [res.data, ...prev]);
         toast.success("Note created");
       }
