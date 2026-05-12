@@ -2,6 +2,7 @@ const ChatMessage = require("../models/ChatMessage");
 const Note = require("../models/Note");
 const User = require("../models/User");
 const createNotification = require("../utils/createNotification");
+const jwt = require("jsonwebtoken");
 
 const noteUsers = {};
 const codeRooms = {};
@@ -26,6 +27,27 @@ function getUserColor(userId) {
 }
 
 const setupSocket = (io) => {
+  // Socket.io JWT authentication middleware
+  io.use((socket, next) => {
+    try {
+      const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+
+      if (!token) {
+        console.error("Socket Auth error: no token provided");
+        socket.disconnect(true);
+        return next(new Error("Authentication error: No token provided"));
+      }
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      socket.user = { id: decoded.id };
+      next();
+    } catch (error) {
+      console.error("Socket Auth error: invalid signature or failed verification:", error.message);
+      socket.disconnect(true);
+      return next(new Error("Authentication error: Invalid signature"));
+    }
+  });
+
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 

@@ -96,6 +96,7 @@ function Editor() {
     }
   ]);
   const [aiLoading, setAiLoading] = useState(false);
+  const [lastThoughtSignature, setLastThoughtSignature] = useState("");
 
   // Refs for real-time syncing of state inside callbacks
   const activeFileNameRef = useRef(activeFileName);
@@ -111,12 +112,30 @@ function Editor() {
     }
   }, [activeFileName, files]);
 
-  // Handle URL hash room loading on mount
+  // Handle URL hash or search query room loading on mount
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const queryRoomId = searchParams.get("roomId");
+
     const hash = window.location.hash;
+    let hashRoomId = "";
     if (hash && hash.startsWith("#room-")) {
-      const hashRoomId = hash.replace("#room-", "");
-      setInputRoomId(hashRoomId);
+      hashRoomId = hash.replace("#room-", "");
+    }
+
+    const initialRoomId = queryRoomId || hashRoomId;
+    if (initialRoomId) {
+      const cleanRoomId = initialRoomId.trim().toUpperCase();
+      setInputRoomId(cleanRoomId);
+      setRoomId(cleanRoomId);
+      setJoined(true);
+      window.location.hash = `#room-${cleanRoomId}`;
+
+      socket.emit("join-room", {
+        roomId: cleanRoomId,
+        userId,
+        userName: inputUserName
+      });
     }
   }, []);
 
@@ -220,6 +239,11 @@ function Editor() {
       updateRemoteCursorDecorations();
     });
 
+    socket.on("ai-error", ({ message }) => {
+      toast.error(message || "AI encountered an issue. Please try again.");
+      setAiLoading(false);
+    });
+
     return () => {
       socket.off("room-init");
       socket.off("code-room-users");
@@ -230,6 +254,7 @@ function Editor() {
       socket.off("user-typing-update");
       socket.off("cursor-update-receive");
       socket.off("remove-cursor");
+      socket.off("ai-error");
     };
   }, [joined, roomId]);
 
@@ -400,6 +425,13 @@ function Editor() {
       toast.error("File already exists");
       return;
     }
+
+    // Only allow .html and .py files
+    if (!name.endsWith(".html") && !name.endsWith(".py")) {
+      toast.error("Only .html and .py files are allowed in this workspace!");
+      return;
+    }
+
     const ext = name.split(".").pop();
     const lang = getLanguageFromFilename(name);
 
@@ -666,12 +698,19 @@ function Editor() {
         body: JSON.stringify({
           message: userPromptText,
           content: code, // Sends current Monaco text context
+          thought_signature: lastThoughtSignature,
           history: aiMessages.slice(-6).map(m => ({
             role: m.sender === "user" ? "user" : "assistant",
-            content: m.text
+            content: m.text,
+            thought_signature: m.thought_signature
           }))
         })
       });
+
+      const thoughtSig = response.headers.get("X-Thought-Signature");
+      if (thoughtSig) {
+        setLastThoughtSignature(thoughtSig);
+      }
 
       if (response.status === 429) {
         setAiMessages(prev => prev.map(m => {
@@ -703,11 +742,22 @@ function Editor() {
           const chunk = decoder.decode(value, { stream: true });
           streamedText += chunk;
           
+          let plainText = streamedText;
+          const sigIndex = streamedText.indexOf("__THOUGHT_SIGNATURE__:");
+          if (sigIndex !== -1) {
+            plainText = streamedText.substring(0, sigIndex).trim();
+            const signature = streamedText.substring(sigIndex + "__THOUGHT_SIGNATURE__:".length).trim();
+            if (signature) {
+              setLastThoughtSignature(signature);
+            }
+          }
+
           setAiMessages(prev => prev.map(m => {
             if (m._id === aiMessageId) {
               return {
                 ...m,
-                text: streamedText
+                text: plainText,
+                thought_signature: lastThoughtSignature
               };
             }
             return m;

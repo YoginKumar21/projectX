@@ -149,11 +149,12 @@ exports.handleAIAction = async (req, res) => {
         });
     }
 
-    if (!process.env.GEMINI_KEY) {
-      throw new Error("GEMINI_KEY is missing in server/.env");
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY or GEMINI_KEY is missing in server/.env");
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
+    const genAI = new GoogleGenerativeAI({ apiKey });
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
       systemInstruction: "You are a smart AI assistant inside a premium collaborative notes app. Your output should be useful, clean, directly usable inside the product, and well structured.",
@@ -204,7 +205,7 @@ ${versionText}`;
 // POST /api/ai/chat
 exports.handleAIChat = async (req, res) => {
   try {
-    const { message, content, history = [] } = req.body;
+    const { message, content, history = [], thought_signature } = req.body;
 
     if (!message || content === undefined) {
       return res.status(400).json({
@@ -223,22 +224,31 @@ exports.handleAIChat = async (req, res) => {
     ];
 
     limitedHistory.forEach((item) => {
+      const part = { text: item.content };
+      if (item.thought_signature) {
+        part.thought_signature = item.thought_signature;
+      }
       contents.push({
         role: item.role === "assistant" ? "model" : "user",
-        parts: [{ text: item.content }]
+        parts: [part]
       });
     });
 
+    const userPart = { text: message };
+    if (thought_signature) {
+      userPart.thought_signature = thought_signature;
+    }
     contents.push({
       role: "user",
-      parts: [{ text: message }]
+      parts: [userPart]
     });
 
-    if (!process.env.GEMINI_KEY) {
-      throw new Error("GEMINI_KEY is missing in server/.env");
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY or GEMINI_KEY is missing in server/.env");
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
+    const genAI = new GoogleGenerativeAI({ apiKey });
     
     // Contextual Awareness: Provide clear instructions for active code analysis vs fresh new code generation
     const systemInstruction = 
@@ -268,10 +278,32 @@ exports.handleAIChat = async (req, res) => {
       const chunkText = chunk.text();
       res.write(chunkText);
     }
+
+    // Capture the thought_signature returned in the model's response
+    try {
+      const response = await result.response;
+      const candidate = response.candidates?.[0];
+      const modelThoughtSignature = candidate?.thoughtSignature || candidate?.thought_signature;
+      if (modelThoughtSignature) {
+        // Expose via exposed headers and trailing stream block for absolute robustness
+        res.setHeader("X-Thought-Signature", modelThoughtSignature);
+        res.setHeader("Access-Control-Expose-Headers", "X-Thought-Signature");
+        res.write(`\n\n__THOUGHT_SIGNATURE__:${modelThoughtSignature}`);
+      }
+    } catch (sigErr) {
+      console.warn("Failed to retrieve model thought signature:", sigErr.message);
+    }
+
     res.end();
   } catch (error) {
     console.error("AI Chat Error:", error);
     
+    // Emit socket event to prevent the UI from hanging
+    const io = req.app.get("io");
+    if (io && req.user && req.user.id) {
+      io.to(`user:${req.user.id}`).emit("ai-error", { message: error.message });
+    }
+
     // Error Handling: If API returns a 429 error, display "AI is busy, please wait 10 seconds" message
     const isRateLimit = error.status === 429 || error.statusCode === 429 || (error.message && error.message.includes("429"));
     
