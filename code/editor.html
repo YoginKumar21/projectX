@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                "on-surface-variant": "#464554",
+                "surface-container-highest": "#e0e3e5",
+                "primary-container": "#6063ee",
+                "surface": "#f7f9fb",
+                "on-secondary-fixed": "#2c0051",
+                "on-secondary-fixed-variant": "#6900b3",
+                "outline": "#767586",
+                "on-secondary-container": "#fffbff",
+                "primary-fixed-dim": "#c0c1ff",
+                "tertiary-container": "#b55d00",
+                "surface-variant": "#e0e3e5",
+                "on-primary": "#ffffff",
+                "tertiary-fixed-dim": "#ffb783",
+                "surface-bright": "#f7f9fb",
+                "on-primary-container": "#fffbff",
+                "secondary": "#8127cf",
+                "on-tertiary-fixed-variant": "#703700",
+                "error": "#ba1a1a",
+                "background": "#f7f9fb",
+                "surface-container-high": "#e6e8ea",
+                "surface-tint": "#494bd6",
+                "surface-container-lowest": "#ffffff",
+                "tertiary-fixed": "#ffdcc5",
+                "surface-dim": "#d8dadc",
+                "inverse-surface": "#2d3133",
+                "on-error-container": "#93000a",
+                "on-tertiary-fixed": "#301400",
+                "outline-variant": "#c7c4d7",
+                "primary-fixed": "#e1e0ff",
+                "on-background": "#191c1e",
+                "surface-container": "#eceef0",
+                "secondary-fixed": "#f0dbff",
+                "on-secondary": "#ffffff",
+                "inverse-primary": "#c0c1ff",
+                "primary": "#4648d4",
+                "on-surface": "#191c1e",
+                "tertiary": "#904900",
+                "on-tertiary": "#ffffff",
+                "secondary-fixed-dim": "#ddb7ff",
+                "inverse-on-surface": "#eff1f3",
+                "on-error": "#ffffff",
+                "on-tertiary-container": "#fffbff",
+                "on-primary-fixed-variant": "#2f2ebe",
+                "secondary-container": "#9c48ea",
+                "error-container": "#ffdad6",
+                "surface-container-low": "#f2f4f6",
+                "on-primary-fixed": "#07006c"
+              },
+              "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+              },
+              "spacing": {
+                "gutter": "24px",
+                "container_max": "1440px",
+                "sidebar_width": "260px",
+                "sidebar_collapsed": "80px",
+                "navbar_height": "72px",
+                "base": "8px"
+              },
+              "fontFamily": {
+                "h1": ["Poppins"],
+                "body-lg": ["inter"],
+                "body-md": ["inter"],
+                "h2": ["Poppins"],
+                "label-sm": ["inter"],
+                "h3": ["Poppins"],
+                "mono": ["JetBrains Mono"]
+              },
+              "fontSize": {
+                "h1": ["40px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                "h2": ["32px", {"lineHeight": "1.25", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                "label-sm": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                "h3": ["24px", {"lineHeight": "1.3", "fontWeight": "500"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* IDE Specific Styles from DOCUMENT_21 */
+        .editor-root {
+            display: flex;
+            height: calc(100vh - theme(spacing.navbar_height));
+            background: #0d0f14;
+            font-family: 'JetBrains Mono', monospace;
+            color: #cdd6f4;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .activity-bar {
+            width: 48px;
+            background: #090b10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 0;
+            gap: 4px;
+            border-right: 1px solid #1e2030;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .activity-icon {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #6c7086;
+            font-size: 18px;
+            transition: all 0.15s;
+            position: relative;
+        }
+        .activity-icon:hover { color: #cdd6f4; background: #1e2030; }
+        .activity-icon.active { color: #89b4fa; background: #1e2030; }
+        .activity-icon .badge {
+            position: absolute;
+            top: 4px; right: 4px;
+            width: 8px; height: 8px;
+            background: #f38ba8;
+            border-radius: 50%;
+            border: 2px solid #090b10;
+        }
+
+        .ide-sidebar {
+            width: 220px;
+            background: #0d0f14;
+            border-right: 1px solid #1e2030;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .ide-sidebar-header {
+            padding: 10px 12px 8px;
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            color: #6c7086;
+            text-transform: uppercase;
+            border-bottom: 1px solid #1e2030;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-actions { display: flex; gap: 4px; }
+        .sidebar-actions button {
+            background: none;
+            border: none;
+            color: #6c7086;
+            font-size: 15px;
+            cursor: pointer;
+            padding: 2px;
+            line-height: 1;
+            border-radius: 4px;
+        }
+        .sidebar-actions button:hover { color: #cdd6f4; background: #1e2030; }
+
+        .file-tree { flex: 1; overflow-y: auto; padding: 6px 0; }
+        .file-tree::-webkit-scrollbar { width: 4px; }
+        .file-tree::-webkit-scrollbar-thumb { background: #1e2030; border-radius: 2px; }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #a6adc8;
+            border-radius: 4px;
+            margin: 0 4px;
+            transition: background 0.1s;
+            position: relative;
+        }
+        .file-item:hover { background: #1e2030; color: #cdd6f4; }
+        .file-item.active { background: #1e2030; color: #cdd6f4; }
+        .file-item .lang-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .file-item .editor-badge {
+            margin-left: auto;
+            font-size: 9px;
+            padding: 1px 5px;
+            border-radius: 3px;
+            letter-spacing: 0.03em;
+        }
+
+        .presence-section {
+            border-top: 1px solid #1e2030;
+            padding: 8px 0;
+        }
+        .presence-title {
+            font-size: 10px;
+            color: #6c7086;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 0 12px 6px;
+        }
+        .presence-user {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px;
+            font-size: 11px;
+            color: #a6adc8;
+        }
+        .avatar-circle {
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 9px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .presence-file { color: #6c7086; font-size: 10px; margin-left: auto; }
+
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+            background: #0d0f14;
+        }
+
+        .tab-bar {
+            display: flex;
+            align-items: center;
+            background: #090b10;
+            border-bottom: 1px solid #1e2030;
+            height: 36px;
+            padding: 0 4px;
+            gap: 2px;
+            flex-shrink: 0;
+            overflow-x: auto;
+        }
+        .tab-bar::-webkit-scrollbar { height: 2px; }
+        .tab-bar::-webkit-scrollbar-thumb { background: #1e2030; }
+
+        .ide-tab {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 12px 0 10px;
+            height: 28px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #6c7086;
+            white-space: nowrap;
+            transition: all 0.1s;
+            flex-shrink: 0;
+        }
+        .ide-tab:hover { color: #cdd6f4; background: #1e2030; }
+        .ide-tab.active { color: #cdd6f4; background: #1e2030; }
+        .ide-tab .lang-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .ide-tab .close-btn {
+            font-size: 12px;
+            color: #45475a;
+            margin-left: 2px;
+            line-height: 1;
+        }
+        .ide-tab:hover .close-btn { color: #6c7086; }
+        .tab-add {
+            width: 28px; height: 28px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #45475a;
+            font-size: 16px;
+            transition: all 0.1s;
+            flex-shrink: 0;
+        }
+        .tab-add:hover { color: #cdd6f4; background: #1e2030; }
+
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .code-area {
+            flex: 1;
+            overflow: auto;
+            padding: 12px 0;
+            min-height: 0;
+        }
+        .code-area::-webkit-scrollbar { width: 6px; height: 6px; }
+        .code-area::-webkit-scrollbar-thumb { background: #1e2030; border-radius: 3px; }
+
+        .code-line {
+            display: flex;
+            align-items: flex-start;
+            min-height: 20px;
+            padding: 0 16px 0 0;
+            font-size: 13px;
+            line-height: 20px;
+        }
+        .line-num {
+            width: 40px;
+            text-align: right;
+            color: #313244;
+            padding-right: 16px;
+            flex-shrink: 0;
+            user-select: none;
+            font-size: 12px;
+        }
+        .line-content { flex: 1; white-space: pre; }
+
+        .cursor-line { background: #1e2030; border-radius: 2px; }
+        .cursor-indicator {
+            display: inline-block;
+            width: 2px;
+            height: 14px;
+            background: #89b4fa;
+            vertical-align: middle;
+            animation: blink 1s step-end infinite;
+            margin: 0 1px;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+        .collaborator-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 14px;
+            vertical-align: middle;
+            margin: 0 1px;
+            position: relative;
+        }
+        .collab-label {
+            position: absolute;
+            top: -18px;
+            left: 0;
+            font-size: 9px;
+            padding: 1px 5px;
+            border-radius: 3px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .h-resize {
+            height: 4px;
+            background: transparent;
+            cursor: row-resize;
+            flex-shrink: 0;
+            transition: background 0.15s;
+            position: relative;
+        }
+        .h-resize:hover, .h-resize.dragging { background: #89b4fa44; }
+        .h-resize::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 32px;
+            height: 2px;
+            border-radius: 2px;
+            background: #1e2030;
+            transition: background 0.15s;
+        }
+        .h-resize:hover::after, .h-resize.dragging::after { background: #89b4fa; }
+
+        .output-panel {
+            background: #090b10;
+            border-top: 1px solid #1e2030;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .output-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-bottom: 1px solid #1e2030;
+            flex-shrink: 0;
+        }
+        .output-title {
+            font-size: 11px;
+            color: #6c7086;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .run-btn-ide {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: #1e2030;
+            border: 1px solid #313244;
+            border-radius: 6px;
+            padding: 3px 10px;
+            font-size: 11px;
+            color: #a6e3a1;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .run-btn-ide:hover { background: #313244; border-color: #a6e3a1; }
+        .save-btn-ide {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: #1e2030;
+            border: 1px solid #313244;
+            border-radius: 6px;
+            padding: 3px 10px;
+            font-size: 11px;
+            color: #89b4fa;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .save-btn-ide:hover { background: #313244; border-color: #89b4fa; }
+
+        .output-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 16px;
+            font-size: 12px;
+            line-height: 1.7;
+        }
+        .output-content::-webkit-scrollbar { width: 4px; }
+        .output-content::-webkit-scrollbar-thumb { background: #1e2030; }
+        .out-info { color: #89b4fa; }
+        .out-success { color: #a6e3a1; }
+        .out-stdout { color: #cdd6f4; }
+
+        .v-resize {
+            width: 4px;
+            background: transparent;
+            cursor: col-resize;
+            flex-shrink: 0;
+            transition: background 0.15s;
+            position: relative;
+        }
+        .v-resize:hover, .v-resize.dragging { background: #89b4fa44; }
+        .v-resize::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 32px;
+            border-radius: 2px;
+            background: #1e2030;
+            transition: background 0.15s;
+        }
+        .v-resize:hover::after, .v-resize.dragging::after { background: #89b4fa; }
+
+        .right-panel-ide {
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #1e2030;
+            background: #0d0f14;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .panel-tabs {
+            display: flex;
+            border-bottom: 1px solid #1e2030;
+            background: #090b10;
+            flex-shrink: 0;
+        }
+        .panel-tab {
+            flex: 1;
+            padding: 8px 0;
+            font-size: 11px;
+            text-align: center;
+            cursor: pointer;
+            color: #6c7086;
+            letter-spacing: 0.05em;
+            transition: all 0.1s;
+            border-bottom: 2px solid transparent;
+        }
+        .panel-tab:hover { color: #cdd6f4; }
+        .panel-tab.active { color: #89b4fa; border-bottom-color: #89b4fa; }
+
+        .chat-area-ide {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 0;
+        }
+        .chat-area-ide::-webkit-scrollbar { width: 4px; }
+        .chat-area-ide::-webkit-scrollbar-thumb { background: #1e2030; border-radius: 2px; }
+
+        .chat-msg-ide {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .chat-meta-ide {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .chat-name-ide { font-size: 11px; font-weight: 500; }
+        .chat-time-ide { font-size: 10px; color: #45475a; }
+        .chat-bubble-ide {
+            font-size: 12px;
+            line-height: 1.5;
+            color: #bac2de;
+            padding: 6px 10px;
+            background: #1e2030;
+            border-radius: 0 8px 8px 8px;
+            max-width: 95%;
+        }
+        .chat-bubble-ide.mine {
+            background: #1e3a5f;
+            border-radius: 8px 0 8px 8px;
+            align-self: flex-end;
+        }
+
+        .sys-msg-ide {
+            text-align: center;
+            font-size: 10px;
+            color: #45475a;
+            padding: 2px 0;
+        }
+
+        .chat-input-area-ide {
+            border-top: 1px solid #1e2030;
+            padding: 8px;
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .chat-input-ide {
+            flex: 1;
+            background: #1e2030;
+            border: 1px solid #313244;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 12px;
+            color: #cdd6f4;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .chat-input-ide:focus { border-color: #89b4fa; }
+        .chat-send-ide {
+            background: #1e3a5f;
+            border: 1px solid #89b4fa44;
+            border-radius: 6px;
+            padding: 6px 10px;
+            color: #89b4fa;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.15s;
+        }
+
+        .ai-messages-ide {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 0;
+        }
+        .ai-msg-ide { font-size: 12px; line-height: 1.6; }
+        .ai-msg-ide.assistant .ai-label {
+            font-size: 10px;
+            color: #cba6f7;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .statusbar-ide {
+            height: 22px;
+            background: #090b10;
+            border-top: 1px solid #1e2030;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            gap: 16px;
+            font-size: 10px;
+            color: #45475a;
+            flex-shrink: 0;
+            letter-spacing: 0.04em;
+        }
+
+        .notification-toast {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #1e2030;
+            border: 1px solid #313244;
+            border-left: 3px solid #f9e2af;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 11px;
+            color: #cdd6f4;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 100;
+            max-width: 260px;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md selection:bg-primary-container selection:text-on-primary-container">
+<!-- SideNavBar (Shared Component) -->
+<aside class="w-sidebar_width h-screen fixed left-0 top-0 bg-surface-container-lowest border-r border-outline-variant flex flex-col z-50 transition-all duration-300">
+<div class="h-navbar_height px-6 flex items-center gap-3">
+<div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-on-primary text-2xl">sync_alt</span>
+</div>
+<div class="flex flex-col">
+<span class="font-h3 text-xl font-bold text-on-surface leading-tight">SyncPad</span>
+<span class="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Digital Workspace</span>
+</div>
+</div>
+<nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto scrollbar-hide">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high/50 hover:text-on-surface rounded-xl transition-all group" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high/50 hover:text-on-surface rounded-xl transition-all group" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-body-md font-medium">My Notes</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-primary text-on-primary rounded-xl transition-all shadow-md shadow-primary/20 group" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">code</span>
+<span class="font-body-md font-semibold">Code Editor</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high/50 hover:text-on-surface rounded-xl transition-all group" href="#">
+<span class="material-symbols-outlined">auto_awesome</span>
+<span class="font-body-md font-medium">Summarizer</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high/50 hover:text-on-surface rounded-xl transition-all group" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-body-md font-medium">Profile</span>
+</a>
+<!-- Settings removed as per request -->
+</nav>
+<div class="p-4 space-y-4">
+<button class="w-full py-3 px-4 rounded-xl bg-secondary text-on-secondary font-semibold flex items-center justify-center gap-2 shadow-lg shadow-secondary/20 hover:scale-[1.02] active:scale-95 transition-all">
+<span class="material-symbols-outlined">add</span>
+<span>New Note</span>
+</button>
+<div class="pt-4 border-t border-outline-variant">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-error-container/10 hover:text-error rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-body-md font-medium">Logout</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- TopNavBar (Shared Component) -->
+<header class="h-navbar_height fixed top-0 right-0 z-40 bg-surface-container-lowest/80 backdrop-blur-xl border-b border-outline-variant flex items-center justify-between px-gutter ml-sidebar_width w-[calc(100%-theme(spacing.sidebar_width))]">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-full max-w-xl group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full pl-12 pr-4 py-2.5 bg-surface-container-low border border-transparent focus:border-primary/20 focus:bg-surface-container-lowest rounded-full focus:ring-4 focus:ring-primary/10 transition-all duration-300 text-body-md" placeholder="Search functions, snippets, or files..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1 bg-surface-container-low rounded-full p-1">
+<button class="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-all">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-all">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+</div>
+<div class="h-8 w-px bg-outline-variant mx-2"></div>
+<div class="flex items-center gap-3 pl-2 pr-1 py-1 rounded-full hover:bg-surface-container-low transition-all cursor-pointer group">
+<div class="text-right hidden sm:block">
+<p class="font-label-sm text-on-surface font-bold">Alex Dev</p>
+<p class="text-[10px] text-on-surface-variant font-medium">Pro Developer</p>
+</div>
+<div class="relative">
+<img alt="User Avatar" class="w-10 h-10 rounded-full object-cover border-2 border-primary/20 group-hover:border-primary/40 transition-all shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgpD8OlLbtbfW2mUUfj7NHuar8m_RXM4gCKdUj7xhLe3nW6DT24mWQCS102BE0GYnGZSOR8Tvgmo26hOB9ZnLGuw-eLxihI7BiDKhB3UhiOFBLd1TmiKo4EW-z-siJWbjUdN3VvRvI8ke1aEJIT2ufmsWkrRdEpBBm_rKR1HDwauRzaQ18SH8pxHxHVoJcgoCPQHpE00tyMHpifTCWHPZpUHIdJRP0ppzM5ALSRO7XHH4SZRbbhBx87lIFHZFKkQY8ToeHr7A4HDHr"/>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-surface-container-lowest rounded-full"></div>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Area: Multi-pane IDE -->
+<main class="ml-sidebar_width pt-navbar_height min-h-screen flex flex-col">
+<div class="editor-root" id="editorRoot">
+<!-- Activity Bar -->
+<div class="activity-bar">
+<div class="activity-icon active" id="act-files" onclick="setActivity('files')" title="Files">
+<i aria-hidden="true" class="ti ti-files"></i>
+</div>
+<div class="activity-icon" id="act-chat" onclick="setActivity('chat')" title="Group Chat">
+<i aria-hidden="true" class="ti ti-message-circle"></i>
+<span class="badge"></span>
+</div>
+<div class="activity-icon" id="act-ai" onclick="setActivity('ai')" title="AI Assistant">
+<i aria-hidden="true" class="ti ti-sparkles"></i>
+</div>
+<div class="activity-icon" id="act-run" onclick="setActivity('run')" title="Run">
+<i aria-hidden="true" class="ti ti-player-play"></i>
+</div>
+<div style="flex:1"></div>
+<div class="activity-icon" title="Members">
+<i aria-hidden="true" class="ti ti-users"></i>
+</div>
+<div class="activity-icon" title="Settings">
+<i aria-hidden="true" class="ti ti-settings"></i>
+</div>
+<div class="activity-icon" style="margin-top:4px;" title="Drawings">
+<i aria-hidden="true" class="ti ti-pencil"></i>
+</div>
+</div>
+<!-- Sidebar Panel (File Tree) -->
+<div class="ide-sidebar" id="ideSidebar">
+<div class="ide-sidebar-header">
+<span>Files</span>
+<div class="sidebar-actions">
+<button title="New file"><i aria-hidden="true" class="ti ti-file-plus"></i></button>
+<button title="New folder"><i aria-hidden="true" class="ti ti-folder-plus"></i></button>
+<button title="Refresh"><i aria-hidden="true" class="ti ti-refresh"></i></button>
+</div>
+</div>
+<div class="file-tree" id="fileTree"></div>
+<div class="presence-section">
+<div class="presence-title">Active now</div>
+<div id="presenceList"></div>
+</div>
+</div>
+<div class="v-resize" id="vResize1" title="Drag to resize"></div>
+<!-- Main Editor Area -->
+<div class="main-area" id="mainArea">
+<div class="tab-bar" id="tabBar">
+<div class="tab-add" title="New tab"><i aria-hidden="true" class="ti ti-plus"></i></div>
+</div>
+<div class="editor-container">
+<div class="code-area" id="codeArea"></div>
+<div class="h-resize" id="hResize" title="Drag to resize"></div>
+<!-- Output Panel / Terminal -->
+<div class="output-panel" id="outputPanel" style="height:140px">
+<div class="output-header">
+<i aria-hidden="true" class="ti ti-terminal-2" style="font-size:14px;color:#6c7086"></i>
+<span class="output-title">Terminal</span>
+<select class="bg-[#1e2030] border border-[#313244] rounded px-2 py-0.5 text-[11px] text-[#a6adc8] ml-2 outline-none cursor-pointer font-mono" id="langSelect">
+<option value="py">Python</option>
+<option value="js">JavaScript</option>
+<option value="ts">TypeScript</option>
+<option value="rust">Rust</option>
+</select>
+<button class="save-btn-ide" onclick="simulateSave()">
+<i aria-hidden="true" class="ti ti-device-floppy"></i> Save
+                        </button>
+<button class="run-btn-ide" onclick="simulateRun()">
+<i aria-hidden="true" class="ti ti-player-play"></i> Run
+                        </button>
+</div>
+<div class="output-content" id="outputContent"></div>
+</div>
+</div>
+<div class="statusbar-ide">
+<div class="flex items-center gap-1">
+<div class="w-1.5 h-1.5 rounded-full bg-[#a6e3a1]"></div>
+<span>Connected · Room SYNC-ALPHA-402</span>
+</div>
+<div class="flex items-center gap-1"><i aria-hidden="true" class="ti ti-users" style="font-size:11px"></i><span id="memberCount">3 online</span></div>
+<div style="flex:1"></div>
+<span id="statusLang">Python</span>
+<span>Ln 5, Col 12</span>
+<span>UTF-8</span>
+</div>
+</div>
+<div class="v-resize" id="vResize2" title="Drag to resize"></div>
+<!-- Right Panel (Chat / AI) -->
+<div class="right-panel-ide" id="rightPanel">
+<div class="panel-tabs">
+<div class="panel-tab active" id="tab-chat" onclick="switchPanel('chat')">Chat</div>
+<div class="panel-tab" id="tab-ai" onclick="switchPanel('ai')">AI Assistant</div>
+</div>
+<div id="chatPanel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+<div class="chat-area-ide" id="chatArea"></div>
+<div class="chat-input-area-ide">
+<input class="chat-input-ide" id="chatInput" onkeydown="handleChatKey(event)" placeholder="Message team..."/>
+<button class="chat-send-ide" onclick="sendChat()"><i aria-hidden="true" class="ti ti-send"></i></button>
+</div>
+</div>
+<div id="aiPanel" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+<div class="ai-messages-ide" id="aiMessages"></div>
+<div class="p-2 border-t border-[#1e2030]">
+<div class="flex gap-2 items-end">
+<textarea class="flex-1 bg-[#1e2030] border border-[#313244] rounded-lg p-2 text-xs text-[#cdd6f4] outline-none resize-none h-[34px]" id="aiInput" onkeydown="handleAiKey(event)" placeholder="Ask about code..."></textarea>
+<button class="bg-[#2a1f3d] border border-[#cba6f744] rounded-lg p-2 text-[#cba6f7]" onclick="sendAiMsg()"><i aria-hidden="true" class="ti ti-send"></i></button>
+</div>
+<div class="text-[10px] text-[#45475a] mt-1">Uses Gemini · sees current file</div>
+</div>
+</div>
+</div>
+<div id="toastContainer"></div>
+</div>
+</main>
+<script>
+    const files = [
+        { id:1, name:'main.py', lang:'py', color:'#89b4fa', active:true, editedBy:'You' },
+        { id:2, name:'utils.py', lang:'py', color:'#89b4fa', editedBy:'Rahul' },
+        { id:3, name:'syncpad/ai.py', lang:'py', color:'#89b4fa', editedBy:null },
+        { id:4, name:'config.json', lang:'json', color:'#f9e2af', editedBy:null },
+        { id:5, name:'README.md', lang:'md', color:'#cba6f7', editedBy:null },
+    ];
+
+    const users = [
+        { name:'You', initials:'YO', color:'#89b4fa', bg:'#1e3a5f', file:'main.py' },
+        { name:'Rahul', initials:'RK', color:'#a6e3a1', bg:'#1e3a4a', file:'utils.py' },
+        { name:'Priya', initials:'PS', color:'#f38ba8', bg:'#3a1e2a', file:'config.json' },
+    ];
+
+    const codeLines = [
+        { n:1, tokens:[{t:'keyword',v:'import '},{t:'var',v:'syncpad'}] },
+        { n:2, tokens:[{t:'keyword',v:'from '},{t:'var',v:'syncpad.ai '},{t:'keyword',v:'import '},{t:'var',v:'Summarizer'}] },
+        { n:3, tokens:[] },
+        { n:4, tokens:[{t:'comment',v:'# Initialize the workspace environment'}] },
+        { n:5, tokens:[{t:'keyword',v:'def '},{t:'func',v:'initialize_workspace'},{t:'plain',v:'():'}], cursor:true },
+        { n:6, tokens:[{t:'plain',v:'    workspace = syncpad.'},{t:'func',v:'Workspace'},{t:'plain',v:'(name='},{t:'str',v:'"Dev Project Alpha"'},{t:'plain',v:')'}] },
+        { n:7, tokens:[{t:'plain',v:'    '},{t:'keyword',v:'print'},{t:'plain',v:'(f'},{t:'str',v:'"Workspace {workspace.id} is now active."'}] },
+        { n:8, tokens:[{t:'plain',v:'    '},{t:'keyword',v:'return '},{t:'plain',v:'workspace'}] },
+        { n:9, tokens:[] },
+        { n:10, tokens:[{t:'keyword',v:'async def '},{t:'func',v:'process_notes'},{t:'plain',v:'(workspace):'}] },
+        { n:11, tokens:[{t:'plain',v:'    notes = '},{t:'keyword',v:'await '},{t:'plain',v:'workspace.'},{t:'func',v:'get_recent_notes'},{t:'plain',v:'()'}] },
+        { n:12, tokens:[{t:'plain',v:'    '},{t:'keyword',v:'for '},{t:'plain',v:'note '},{t:'keyword',v:'in '},{t:'plain',v:'notes:'}] },
+        { n:13, tokens:[{t:'plain',v:'        summary = '},{t:'keyword',v:'await '},{t:'var',v:'Summarizer'},{t:'plain',v:'.'},{t:'func',v:'generate'},{t:'plain',v:'(note.'},{t:'var',v:'content'},{t:'plain',v:')'}] },
+        { n:14, tokens:[{t:'plain',v:'        '},{t:'keyword',v:'await '},{t:'plain',v:'workspace.'},{t:'func',v:'save_insight'},{t:'plain',v:'(summary)'}] },
+        { n:15, tokens:[{t:'plain',v:'        '},{t:'keyword',v:'print'},{t:'plain',v:'(f'},{t:'str',v:'"Saved insight for: {note.title}"'},{t:'plain',v:')'}] },
+    ];
+
+    const colors = { keyword:'#cba6f7', var:'#89b4fa', func:'#89dceb', str:'#a6e3a1', comment:'#6c7086', plain:'#cdd6f4' };
+
+    const chatMessages = [
+        { user:'Rahul', mine:false, text:'Just updated the sync logic in utils.py', time:'14:01' },
+        { user:'Priya', mine:false, text:'Config settings look good', time:'14:02' },
+        { user:'You', mine:true, text:"Running the initialization test now", time:'14:03' },
+    ];
+
+    const outputLines = [
+        { cls:'out-info', text:'[INFO] Compiling main.py...' },
+        { cls:'out-info', text:'[INFO] Execution started at 14:02:45' },
+        { cls:'out-stdout', text:'[STDOUT] Workspace SYNC-ALPHA-402 is now active.' },
+        { cls:'out-stdout', text:'[STDOUT] Saved insight for: Project Requirements' },
+        { cls:'out-success', text:'[SUCCESS] Process finished with exit code 0' },
+    ];
+
+    let activeFileId = 1;
+    let currentPanel = 'chat';
+
+    function renderFileTree() {
+        const tree = document.getElementById('fileTree');
+        tree.innerHTML = files.map(f => `
+            <div class="file-item ${f.id === activeFileId ? 'active' : ''}" onclick="openFile(${f.id})">
+                <div class="lang-dot" style="background:${f.color}"></div>
+                <span>${f.name}</span>
+                ${f.editedBy ? `<span class="editor-badge" style="background:${f.editedBy==='You'?'#1e3a5f':'#1e3a2a'};color:${f.editedBy==='You'?'#89b4fa':'#a6e3a1'}">${f.editedBy}</span>` : ''}
+            </div>
+        `).join('');
+    }
+
+    function renderPresence() {
+        const list = document.getElementById('presenceList');
+        list.innerHTML = users.map(u => `
+            <div class="presence-user">
+                <div class="avatar-circle" style="background:${u.bg};color:${u.color}">${u.initials}</div>
+                <span>${u.name}</span>
+                <span class="presence-file">${u.file}</span>
+            </div>
+        `).join('');
+    }
+
+    function renderTabs() {
+        const bar = document.getElementById('tabBar');
+        const openFiles = files.filter(f => f.id === activeFileId || f.id <= 2);
+        bar.innerHTML = openFiles.map(f => `
+            <div class="ide-tab ${f.id === activeFileId ? 'active' : ''}" onclick="openFile(${f.id})">
+                <div class="lang-dot" style="background:${f.color}"></div>
+                <span>${f.name}</span>
+                <span class="close-btn"><i class="ti ti-x" style="font-size:10px"></i></span>
+            </div>
+        `).join('') + `<div class="tab-add"><i class="ti ti-plus"></i></div>`;
+    }
+
+    function renderCode() {
+        const area = document.getElementById('codeArea');
+        area.innerHTML = codeLines.map(line => `
+            <div class="code-line ${line.cursor ? 'cursor-line' : ''}">
+                <span class="line-num">${line.n}</span>
+                <span class="line-content">${line.tokens.map(t => `<span style="color:${colors[t.t]||colors.plain}">${t.v}</span>`).join('')}${line.cursor ? `<span class="cursor-indicator"></span>` : ''}</span>
+            </div>
+        `).join('');
+    }
+
+    function renderOutput() {
+        const content = document.getElementById('outputContent');
+        content.innerHTML = outputLines.map(l => `<div class="${l.cls}">${l.text}</div>`).join('');
+    }
+
+    function renderChat() {
+        const area = document.getElementById('chatArea');
+        area.innerHTML = `<div class="sys-msg-ide">— Room SYNC-ALPHA-402 · 3 members —</div>` +
+            chatMessages.map(m => `
+                <div class="chat-msg-ide">
+                    <div class="chat-meta-ide">
+                        <div class="avatar-circle" style="width:16px;height:16px;font-size:8px;background:${m.mine?'#1e3a5f':'#1e2030'};color:${m.mine?'#89b4fa':'#a6adc8'}">${m.user[0]}</div>
+                        <span class="chat-name-ide" style="color:${m.mine?'#89b4fa':'#a6adc8'}">${m.user}</span>
+                        <span class="chat-time-ide">${m.time}</span>
+                    </div>
+                    <div class="chat-bubble-ide ${m.mine?'mine':''}">${m.text}</div>
+                </div>
+            `).join('');
+        area.scrollTop = area.scrollHeight;
+    }
+
+    function renderAiWelcome() {
+        const msgs = document.getElementById('aiMessages');
+        msgs.innerHTML = `
+            <div class="ai-msg-ide assistant">
+                <div class="ai-label"><i class="ti ti-sparkles" style="font-size:12px"></i> AI Assistant</div>
+                <div>Hi Alex! I'm here to help you with <b>main.py</b>. I can explain logic, refactor functions, or suggest tests.</div>
+            </div>
+        `;
+    }
+
+    function openFile(id) {
+        activeFileId = id;
+        renderFileTree();
+        renderTabs();
+        const f = files.find(x => x.id === id);
+        if (f) document.getElementById('statusLang').textContent = ({js:'JavaScript',py:'Python',json:'JSON',md:'Markdown'}[f.lang]||f.lang);
+    }
+
+    function switchPanel(tab) {
+        currentPanel = tab;
+        document.getElementById('chatPanel').style.display = tab === 'chat' ? 'flex' : 'none';
+        document.getElementById('aiPanel').style.display = tab === 'ai' ? 'flex' : 'none';
+        document.getElementById('tab-chat').classList.toggle('active', tab === 'chat');
+        document.getElementById('tab-ai').classList.toggle('active', tab === 'ai');
+    }
+
+    function setActivity(name) {
+        ['files','chat','ai','run'].forEach(a => document.getElementById('act-'+a)?.classList.remove('active'));
+        document.getElementById('act-'+name)?.classList.add('active');
+        if(name === 'chat') switchPanel('chat');
+        if(name === 'ai') switchPanel('ai');
+    }
+
+    function handleChatKey(e) { if (e.key === 'Enter') sendChat(); }
+    function sendChat() {
+        const input = document.getElementById('chatInput');
+        if (!input.value.trim()) return;
+        chatMessages.push({ user:'You', mine:true, text:input.value, time:new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) });
+        renderChat();
+        input.value = '';
+    }
+
+    function handleAiKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiMsg(); } }
+    function sendAiMsg() {
+        const input = document.getElementById('aiInput');
+        if (!input.value.trim()) return;
+        const msgs = document.getElementById('aiMessages');
+        msgs.innerHTML += `<div class="ai-msg-ide mb-2 text-right"><span class="bg-[#1e2030] p-2 rounded-lg inline-block text-[#cdd6f4]">${input.value}</span></div>`;
+        input.value = '';
+        msgs.scrollTop = msgs.scrollHeight;
+        setTimeout(() => {
+            msgs.innerHTML += `<div class="ai-msg-ide assistant mb-2"><div class="ai-label"><i class="ti ti-sparkles"></i> AI Assistant</div><div class="bg-[#1e2030] p-2 rounded-lg border border-[#313244]">Analysis complete. The <code>initialize_workspace</code> function correctly initializes the core library.</div></div>`;
+            msgs.scrollTop = msgs.scrollHeight;
+        }, 600);
+    }
+
+    function simulateRun() {
+        outputLines.length = 0;
+        outputLines.push({ cls:'out-info', text:'[INFO] Initializing interpreter...' });
+        outputLines.push({ cls:'out-stdout', text:'[STDOUT] Testing initialization...' });
+        outputLines.push({ cls:'out-success', text:'[SUCCESS] Done in 0.4s' });
+        renderOutput();
+        showToast("Running...", "info");
+    }
+
+    function simulateSave() {
+        showToast("Saved to Cloud", "info");
+    }
+
+    function showToast(msg, type) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'notification-toast';
+        toast.style.top = (container.children.length * 56 + 12) + 'px';
+        toast.innerHTML = `<span style="font-family:'Inter',sans-serif">${msg}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    function setupResize(handleId, getPrimary, setPrimary, isHorizontal) {
+        const handle = document.getElementById(handleId);
+        let dragging = false, startPos = 0, startSize = 0;
+        handle.addEventListener('mousedown', e => {
+            dragging = true;
+            startPos = isHorizontal ? e.clientY : e.clientX;
+            startSize = getPrimary();
+            handle.classList.add('dragging');
+            document.body.style.cursor = isHorizontal ? 'row-resize' : 'col-resize';
+            document.body.style.userSelect = 'none';
+        });
+        document.addEventListener('mousemove', e => {
+            if (!dragging) return;
+            const delta = isHorizontal ? e.clientY - startPos : e.clientX - startPos;
+            const newSize = Math.max(100, Math.min(startSize + (isHorizontal ? delta : -delta), isHorizontal ? 400 : 600));
+            setPrimary(newSize);
+        });
+        document.addEventListener('mouseup', () => {
+            if (!dragging) return;
+            dragging = false;
+            handle.classList.remove('dragging');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        });
+    }
+
+    setupResize('hResize', 
+        () => parseInt(document.getElementById('outputPanel').style.height) || 140,
+        h => { document.getElementById('outputPanel').style.height = h + 'px'; },
+        true
+    );
+    setupResize('vResize2',
+        () => parseInt(document.getElementById('rightPanel').style.width) || 280,
+        w => { document.getElementById('rightPanel').style.width = w + 'px'; },
+        false
+    );
+    setupResize('vResize1',
+        () => parseInt(document.getElementById('ideSidebar').style.width) || 220,
+        w => { document.getElementById('ideSidebar').style.width = w + 'px'; },
+        false
+    );
+
+    renderFileTree();
+    renderPresence();
+    renderTabs();
+    renderCode();
+    renderOutput();
+    renderChat();
+    renderAiWelcome();
+
+</script>
+</body></html>

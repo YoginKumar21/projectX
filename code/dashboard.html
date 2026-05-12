@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SyncPad Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&amp;family=Inter:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface-variant": "#464554",
+                    "surface-container-highest": "#e0e3e5",
+                    "primary-container": "#6063ee",
+                    "surface": "#f7f9fb",
+                    "on-secondary-fixed": "#2c0051",
+                    "on-secondary-fixed-variant": "#6900b3",
+                    "outline": "#767586",
+                    "on-secondary-container": "#fffbff",
+                    "primary-fixed-dim": "#c0c1ff",
+                    "tertiary-container": "#b55d00",
+                    "surface-variant": "#e0e3e5",
+                    "on-primary": "#ffffff",
+                    "tertiary-fixed-dim": "#ffb783",
+                    "surface-bright": "#f7f9fb",
+                    "on-primary-container": "#fffbff",
+                    "secondary": "#8127cf",
+                    "on-tertiary-fixed-variant": "#703700",
+                    "error": "#ba1a1a",
+                    "background": "#f7f9fb",
+                    "surface-container-high": "#e6e8ea",
+                    "surface-tint": "#494bd6",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary-fixed": "#ffdcc5",
+                    "surface-dim": "#d8dadc",
+                    "inverse-surface": "#2d3133",
+                    "on-error-container": "#93000a",
+                    "on-tertiary-fixed": "#301400",
+                    "outline-variant": "#c7c4d7",
+                    "primary-fixed": "#e1e0ff",
+                    "on-background": "#191c1e",
+                    "surface-container": "#eceef0",
+                    "secondary-fixed": "#f0dbff",
+                    "on-secondary": "#ffffff",
+                    "inverse-primary": "#c0c1ff",
+                    "primary": "#4648d4",
+                    "on-surface": "#191c1e",
+                    "tertiary": "#904900",
+                    "on-tertiary": "#ffffff",
+                    "secondary-fixed-dim": "#ddb7ff",
+                    "inverse-on-surface": "#eff1f3",
+                    "on-error": "#ffffff",
+                    "on-tertiary-container": "#fffbff",
+                    "on-primary-fixed-variant": "#2f2ebe",
+                    "secondary-container": "#9c48ea",
+                    "error-container": "#ffdad6",
+                    "surface-container-low": "#f2f4f6",
+                    "on-primary-fixed": "#07006c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "2xl": "1rem",
+                    "3xl": "1.5rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "24px",
+                    "container_max": "1440px",
+                    "sidebar_width": "260px",
+                    "sidebar_collapsed": "80px",
+                    "navbar_height": "72px",
+                    "base": "8px"
+            },
+            "fontFamily": {
+                    "h1": ["Poppins"],
+                    "body-lg": ["inter"],
+                    "body-md": ["inter"],
+                    "h2": ["Poppins"],
+                    "label-sm": ["inter"],
+                    "h3": ["Poppins"]
+            },
+            "fontSize": {
+                    "h1": ["40px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "h2": ["32px", {"lineHeight": "1.25", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "label-sm": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "h3": ["24px", {"lineHeight": "1.3", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(199, 196, 215, 0.3);
+        }
+        .gradient-border {
+            position: relative;
+            background: linear-gradient(135deg, rgba(70, 72, 212, 0.1), rgba(129, 39, 207, 0.1));
+            border: 1px solid transparent;
+            background-clip: padding-box;
+        }
+        .gradient-border::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(135deg, #4648d4, #8127cf);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+        .sidebar-active-gradient {
+            background: linear-gradient(90deg, rgba(70, 72, 212, 0.1) 0%, transparent 100%);
+        }
+    </style>
+</head>
+<body class="bg-background font-body-md text-on-surface">
+<!-- SideNavBar -->
+<aside class="w-sidebar_width h-screen fixed left-0 top-0 bg-surface-container-lowest/80 backdrop-blur-xl border-r border-outline-variant/10 flex flex-col py-6 z-50">
+<div class="px-6 mb-10 flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
+<img alt="SyncPad Brand Logo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGH1HI5lucTMgOkxKOWboW-ut3b-1sHheB-PcOp-JfSRoZfbxEF6EaOheSmJn8uj0s53ZuLD-hPTVAtZHCz7Ykdun5UA0FJzKrd37tjm_VgE7ApNNvizFzkFZ50g3ZD34_el-pU2CagCatnaD5jhXT14wg77wLlfNf0TAO9Ox-wZ-yhs6tuD0V9VnlwlX985RV3uxnSk3cHlN4-E2Y68EI__VSYs9x1THz0crUTGGOhERLFht8M9P9Y27LtN86o7GLf-WZi5vZSxzB"/>
+</div>
+<div>
+<h1 class="font-h3 text-h3 font-semibold text-primary">SyncPad</h1>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">DIGITAL WORKSPACE</p>
+</div>
+</div>
+<nav class="flex-1">
+<div class="space-y-1">
+<a class="flex items-center gap-3 px-6 py-3 text-primary bg-primary-container/10 border-l-[4px] border-primary transition-all duration-300" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-body-md font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-on-surface-variant hover:bg-surface-container-high/50 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-body-md">My Notes</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-on-surface-variant hover:bg-surface-container-high/50 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">code</span>
+<span class="font-body-md">Code Editor</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-on-surface-variant hover:bg-surface-container-high/50 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">auto_awesome</span>
+<span class="font-body-md">Summarizer</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-on-surface-variant hover:bg-surface-container-high/50 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-body-md">Profile</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-on-surface-variant hover:bg-surface-container-high/50 transition-all duration-300" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md">Settings</span>
+</a>
+</div>
+<div class="px-6 mt-6">
+<button class="w-full py-3 bg-primary text-on-primary rounded-xl font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-200">
+<span class="material-symbols-outlined">add</span>
+                New Note
+            </button>
+</div>
+</nav>
+<div class="mt-auto px-6">
+<div class="border-t border-outline-variant/10 pt-6">
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-error transition-all duration-300" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-body-md">Logout</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- TopNavBar -->
+<header class="h-navbar_height fixed top-0 right-0 z-40 bg-surface-container-lowest/70 backdrop-blur-lg border-b border-outline-variant/10 ml-sidebar_width w-[calc(100%-theme(spacing.sidebar_width))] flex items-center justify-between px-gutter">
+<div class="flex items-center flex-1">
+<div class="relative max-w-xl w-full">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant" style="font-size: 20px;">search</span>
+<input class="w-full pl-12 pr-4 py-2.5 bg-surface-container-low border-none rounded-full focus:ring-2 focus:ring-primary/20 transition-all duration-300 font-body-md" placeholder="Search workspace..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="hover:bg-surface-container-high rounded-full p-2.5 transition-all duration-300 text-on-surface-variant">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="hover:bg-surface-container-high rounded-full p-2.5 transition-all duration-300 text-on-surface-variant">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+<div class="h-6 w-[1px] bg-outline-variant/20 mx-2"></div>
+<div class="flex items-center gap-3 ml-2 cursor-pointer group">
+<div class="text-right">
+<p class="font-label-sm text-on-surface font-bold">Alex Rivers</p>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold tracking-tighter">Pro Plan</p>
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-primary/10 p-0.5 group-hover:border-primary/30 transition-colors">
+<img alt="User Avatar" class="w-full h-full rounded-full bg-surface-container object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5KEa55KJ8H-rvfwFcuOhACfk1uwzOqzx4Strx6c5UxJeuSx1Cl6cO44xyXPF5HmA7yMchKE4gX7phDF_6LMoU171FPjcKq1DTQlJzg6lvaYtTKoBhT4glveUuvoYrbF2BAIMuhRak61qq3bK42jcNiI8ra19mblt2Z74AuVAtfjYX43ogemIVGR1R-cyHqLmacO5gR_8G5eLdFXCOpOb-UfrrUQYHsUjMUjQoAH7F9YIxSiLywzOADZnSbPF-0PsGNgbq0x09yJVZ"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-sidebar_width mt-navbar_height min-h-[calc(100vh-theme(spacing.navbar_height))] p-gutter">
+<div class="max-w-container_max mx-auto space-y-8">
+<!-- Page Header -->
+<div class="flex items-end justify-between">
+<div>
+<h2 class="font-h1 text-h1 text-on-surface">Dashboard</h2>
+<p class="font-body-lg text-on-surface-variant">Manage your workspace and organized thoughts.</p>
+</div>
+<button class="px-6 py-3 bg-primary text-on-primary rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-primary/20 hover:translate-y-[-2px] transition-all duration-200">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+                    + New Note
+                </button>
+</div>
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Total Notes -->
+<div class="glass-card gradient-border p-6 rounded-3xl flex items-center gap-4 hover:shadow-xl transition-all duration-300 cursor-default">
+<div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[28px]" data-icon="description">description</span>
+</div>
+<div>
+<p class="font-label-sm text-on-surface-variant">Total Notes</p>
+<p class="font-h2 text-h2 text-on-surface leading-tight">128</p>
+</div>
+</div>
+<!-- Active Notes -->
+<div class="glass-card gradient-border p-6 rounded-3xl flex items-center gap-4 hover:shadow-xl transition-all duration-300 cursor-default">
+<div class="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[28px]" data-icon="rocket_launch">rocket_launch</span>
+</div>
+<div>
+<p class="font-label-sm text-on-surface-variant">Active Notes</p>
+<p class="font-h2 text-h2 text-on-surface leading-tight">42</p>
+</div>
+</div>
+<!-- Archived -->
+<div class="glass-card gradient-border p-6 rounded-3xl flex items-center gap-4 hover:shadow-xl transition-all duration-300 cursor-default">
+<div class="w-12 h-12 rounded-2xl bg-tertiary-container/10 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[28px]" data-icon="archive">archive</span>
+</div>
+<div>
+<p class="font-label-sm text-on-surface-variant">Archived</p>
+<p class="font-h2 text-h2 text-on-surface leading-tight">85</p>
+</div>
+</div>
+<!-- Favorites -->
+<div class="glass-card gradient-border p-6 rounded-3xl flex items-center gap-4 hover:shadow-xl transition-all duration-300 cursor-default">
+<div class="w-12 h-12 rounded-2xl bg-error/10 flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-[28px]" data-icon="favorite" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</div>
+<div>
+<p class="font-label-sm text-on-surface-variant">Favorites</p>
+<p class="font-h2 text-h2 text-on-surface leading-tight">12</p>
+</div>
+</div>
+</div>
+<!-- Notes Section Title -->
+<div class="flex items-center justify-between border-b border-outline-variant/20 pb-4">
+<h3 class="font-h3 text-h3 text-on-surface">Recent Notes</h3>
+<div class="flex gap-2">
+<button class="p-2 rounded-lg bg-surface-container text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="grid_view">grid_view</span>
+</button>
+<button class="p-2 rounded-lg text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="list">list</span>
+</button>
+</div>
+</div>
+<!-- Notes Grid (Simulated with content) -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+<!-- Card 1 -->
+<div class="glass-card p-6 rounded-3xl hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 group cursor-pointer border border-outline-variant/30">
+<div class="flex justify-between items-start mb-4">
+<span class="px-3 py-1 rounded-full bg-primary/10 text-primary font-label-sm">Productivity</span>
+<button class="text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<h4 class="font-h3 text-xl font-semibold text-on-surface mb-2">Q4 Strategic Planning</h4>
+<p class="text-on-surface-variant font-body-md line-clamp-3 mb-6">Discussed the upcoming roadmap for the workspace integration features. Priority 1 is the mobile synchronization layer...</p>
+<div class="flex items-center justify-between pt-4 border-t border-outline-variant/10">
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full border-2 border-surface bg-primary-container"></div>
+<div class="w-6 h-6 rounded-full border-2 border-surface bg-secondary-container"></div>
+</div>
+<p class="font-label-sm text-outline flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span>
+                            2h ago
+                        </p>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="glass-card p-6 rounded-3xl hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 group cursor-pointer border border-outline-variant/30">
+<div class="flex justify-between items-start mb-4">
+<span class="px-3 py-1 rounded-full bg-secondary/10 text-secondary font-label-sm">Design System</span>
+<button class="text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<h4 class="font-h3 text-xl font-semibold text-on-surface mb-2">Icon Set Exploration</h4>
+<p class="text-on-surface-variant font-body-md line-clamp-3 mb-6">Exploration of Material Symbols Outlined vs Filled for the main navigation shell. Need to ensure high contrast...</p>
+<div class="flex items-center justify-between pt-4 border-t border-outline-variant/10">
+<div class="flex gap-1">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+</div>
+<p class="font-label-sm text-outline flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span>
+                            Yesterday
+                        </p>
+</div>
+</div>
+<!-- Empty State / Create First Note -->
+<div class="glass-card p-8 rounded-3xl border-2 border-dashed border-outline-variant/50 flex flex-col items-center justify-center text-center space-y-4 hover:border-primary/50 transition-colors group cursor-pointer">
+<div class="w-20 h-20 rounded-full bg-surface-container flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-4xl text-outline-variant group-hover:text-primary" data-icon="add_notes">add_notes</span>
+</div>
+<div>
+<h4 class="font-h3 text-lg font-semibold text-on-surface">Start something new</h4>
+<p class="text-on-surface-variant font-body-md max-w-[200px]">Your creative journey begins with a single note.</p>
+</div>
+<button class="text-primary font-bold hover:underline">Create your first note</button>
+</div>
+</div>
+<!-- Illustration & Onboarding Section (Asymmetric Layout) -->
+<div class="mt-12 glass-card rounded-3xl p-8 overflow-hidden relative min-h-[300px] flex items-center border border-outline-variant/30">
+<div class="w-full md:w-1/2 relative z-10 space-y-6">
+<div class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm">
+<span class="material-symbols-outlined text-sm" data-icon="auto_awesome">auto_awesome</span>
+                        New: Smart Summarizer
+                    </div>
+<h2 class="font-h2 text-h2 text-on-surface leading-tight">Level up your workspace with AI insights.</h2>
+<p class="font-body-lg text-on-surface-variant max-w-md">SyncPad now uses advanced neural patterns to summarize your long-form notes instantly. Perfect for meeting minutes and research journals.</p>
+<div class="flex gap-4">
+<button class="px-6 py-2 bg-on-surface text-surface rounded-xl font-semibold hover:bg-on-surface-variant transition-colors">Try Summarizer</button>
+<button class="px-6 py-2 border border-outline-variant text-on-surface-variant rounded-xl font-semibold hover:bg-surface-container transition-colors">Learn More</button>
+</div>
+</div>
+<!-- Asymmetric Illustration Placement -->
+<div class="hidden md:block absolute right-0 top-0 bottom-0 w-2/5 h-full">
+<img class="w-full h-full object-cover" data-alt="A sophisticated abstract 3D digital wallpaper featuring flowing, organic glass-like ribbons in shades of deep indigo, soft violet, and cool cyan. The lighting is ethereal and soft, reflecting off translucent surfaces to create a sense of depth and focus. The overall aesthetic is minimalist, futuristic, and perfectly suited for a high-end tech dashboard environment, evoking clarity and innovation." src="https://lh3.googleusercontent.com/aida-public/AB6AXuARj2fP7FFHgHYGxCxcuuCC_y9AZHckT8z3ACwItfHpNox0DC4AyVC4Gk_wlLCz1Es4dVPlsKAv6WrOz_s2TLDO3uO_fMrRpu-TpsaZE_KLrfoFhBpMOPTcbqR75b8xzjMi3evNZt2JF5E2aBqJyOviCHJ6hJq_r2Dl8ZSuYR0dc3BYKxAPvSY0ZcpeO4vMNmgWSr05e6oaGg_FJ90P9434qf4UEJBL9ENRPDdG6zxXPJ5HH2506FeFBpXzZO7QmrCoUlgSbdDVq6E2"/>
+<div class="absolute inset-0 bg-gradient-to-l from-transparent to-surface/80"></div>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB (Suppressed on Dashboard as per mandate, since the main action is in the header/content) -->
+</body></html>

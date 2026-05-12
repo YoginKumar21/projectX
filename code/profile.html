@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SyncPad | User Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&amp;family=Inter:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface-variant": "#464554",
+                        "surface-container-highest": "#e0e3e5",
+                        "primary-container": "#6063ee",
+                        "surface": "#f7f9fb",
+                        "on-secondary-fixed": "#2c0051",
+                        "on-secondary-fixed-variant": "#6900b3",
+                        "outline": "#767586",
+                        "on-secondary-container": "#fffbff",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "tertiary-container": "#b55d00",
+                        "surface-variant": "#e0e3e5",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed-dim": "#ffb783",
+                        "surface-bright": "#f7f9fb",
+                        "on-primary-container": "#fffbff",
+                        "secondary": "#8127cf",
+                        "on-tertiary-fixed-variant": "#703700",
+                        "error": "#ba1a1a",
+                        "background": "#f7f9fb",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-tint": "#494bd6",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#ffdcc5",
+                        "surface-dim": "#d8dadc",
+                        "inverse-surface": "#2d3133",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed": "#301400",
+                        "outline-variant": "#c7c4d7",
+                        "primary-fixed": "#e1e0ff",
+                        "on-background": "#191c1e",
+                        "surface-container": "#eceef0",
+                        "secondary-fixed": "#f0dbff",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#c0c1ff",
+                        "primary": "#4648d4",
+                        "on-surface": "#191c1e",
+                        "tertiary": "#904900",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed-dim": "#ddb7ff",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-error": "#ffffff",
+                        "on-tertiary-container": "#fffbff",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "secondary-container": "#9c48ea",
+                        "error-container": "#ffdad6",
+                        "surface-container-low": "#f2f4f6",
+                        "on-primary-fixed": "#07006c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "container_max": "1440px",
+                        "sidebar_width": "260px",
+                        "sidebar_collapsed": "80px",
+                        "navbar_height": "72px",
+                        "base": "8px"
+                    },
+                    "fontFamily": {
+                        "h1": ["Poppins"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "h2": ["Poppins"],
+                        "label-sm": ["Inter"],
+                        "h3": ["Poppins"]
+                    },
+                    "fontSize": {
+                        "h1": ["40px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "h2": ["32px", { "lineHeight": "1.25", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "label-sm": ["14px", { "lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "h3": ["24px", { "lineHeight": "1.3", "fontWeight": "500" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(99, 102, 241, 0.08);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body-md text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- SideNavBar -->
+<aside class="w-sidebar_width h-screen fixed left-0 top-0 bg-surface dark:bg-surface-dim border-r border-outline-variant/20 flex flex-col py-6 z-50">
+<div class="px-6 mb-10 flex items-center gap-3">
+<img alt="SyncPad Brand Logo" class="w-10 h-10 rounded-lg" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGH1HI5lucTMgOkxKOWboW-ut3b-1sHheB-PcOp-JfSRoZfbxEF6EaOheSmJn8uj0s53ZuLD-hPTVAtZHCz7Ykdun5UA0FJzKrd37tjm_VgE7ApNNvizFzkFZ50g3ZD34_el-pU2CagCatnaD5jhXT14wg77wLlfNf0TAO9Ox-wZ-yhs6tuD0V9VnlwlX985RV3uxnSk3cHlN4-E2Y68EI__VSYs9x1THz0crUTGGOhERLFht8M9P9Y27LtN86o7GLf-WZi5vZSxzB"/>
+<div>
+<h1 class="font-h3 text-h3 font-semibold text-primary leading-none">SyncPad</h1>
+<p class="text-on-surface-variant font-label-sm text-[11px] uppercase tracking-widest mt-1">Digital Workspace</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all mx-3 rounded-xl" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all mx-3 rounded-xl" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-body-md">My Notes</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all mx-3 rounded-xl" href="#">
+<span class="material-symbols-outlined">code</span>
+<span class="font-body-md">Code Editor</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all mx-3 rounded-xl" href="#">
+<span class="material-symbols-outlined">auto_awesome</span>
+<span class="font-body-md">Summarizer</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-primary bg-primary-container/10 border-l-4 border-primary mx-3 rounded-r-xl" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-body-md font-semibold">Profile</span>
+</a>
+</nav>
+<div class="px-6 mt-auto space-y-4">
+<button class="w-full py-3 bg-primary text-on-primary rounded-xl font-body-md flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined">add</span>
+                New Note
+            </button>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-xl" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-body-md">Logout</span>
+</a>
+</div>
+</aside>
+<!-- TopNavBar -->
+<header class="h-navbar_height fixed top-0 right-0 z-40 bg-surface/80 backdrop-blur-lg border-b border-outline-variant/20 flex items-center justify-between px-gutter ml-sidebar_width w-[calc(100%-theme(spacing.sidebar_width))]">
+<div class="flex-1 max-w-xl">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-full py-2.5 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 font-body-md text-on-surface" placeholder="Search workspace..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="hover:bg-surface-container-low rounded-full p-2.5 transition-all text-on-surface-variant relative">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="hover:bg-surface-container-low rounded-full p-2.5 transition-all text-on-surface-variant">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+<div class="h-8 w-[1px] bg-outline-variant/40 mx-2"></div>
+<div class="flex items-center gap-3 pl-2">
+<div class="text-right hidden sm:block">
+<p class="font-label-sm font-semibold text-on-surface">yogin kumar</p>
+<p class="text-[11px] text-on-surface-variant">Pro Plan</p>
+</div>
+<img alt="User Avatar" class="w-10 h-10 rounded-full border border-outline-variant/30 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuArJ_rVClU2b4xcZHdSBxhX1FxpCw4-Ad9vKd2NQuOxQwN2XbLZFF0ojwD5xBSDMzfNQc9EzcUManJQ4cHssOiHQ_WC51AkUI-YMoVvxNqQ9G9lfhlKWlQiKG04pAWTrbfOGxs8wTEP4iaFIsoPwhACwuOYBEG2nPt2OrUveE-Fy-e8AhqxMmzG2NDx7tRN2ZMJW6PiqgIWwVzu1xF5h7tE_B7jeuRdsglA7HZFY1KZHH-iNxiQvHTE28WievDw4b1Mk2jsgOaMxdRs"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-sidebar_width pt-navbar_height min-h-screen">
+<div class="max-w-[1200px] mx-auto p-gutter">
+<!-- Hero Profile Section -->
+<section class="relative mb-10">
+<div class="h-48 rounded-[32px] overflow-hidden relative">
+<img alt="Profile Cover" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhbNJtxCzEpdWAAMkbB4XmKetf_oAQSTojcDRlFK5QBKX4E2pDh6RVABa_810YkrFQ4FjPDkNkzqK7UPUEgn5xGSF5gzwsStdJmFMvdM-WgPmwLBDicEDP3ipWt4eORc3V9cFjoFI2FamfTbFpUhHGeLmyKQwKSeDvzH8V-A5d1N7Ua8vNpXDG0Mv1RUBGwxW9oapNG-8sgSOqSnRuxJfkl9zuazy2KMYrztqFXeNTbYj0XyIqcgEpESup2ErGURmyt2Ygutbtc_Ar"/>
+<div class="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 mix-blend-overlay"></div>
+</div>
+<div class="px-10 -mt-16 relative z-10 flex flex-col md:flex-row items-end gap-6">
+<div class="relative">
+<div class="w-40 h-40 rounded-[32px] border-[6px] border-surface p-1 bg-surface-container-lowest shadow-xl relative overflow-hidden">
+<img alt="Yogin Kumar" class="w-full h-full object-cover rounded-[24px]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6IGUXqiim1x6sLnqvd8mMe5BsjyQWUo6yUwEE06uC4jYUC-LwIp2BxvIcu-E3C7XmvjU97tMaS6lgYti9Rx-O3fTc87veHdZoN5m7VxM89gyJ-9C2W5JAHQEEUqHVG8sNlhs89E-4Mx0gCQs4C_1nYsqecAvCmg6SH7a0FpjJD8kQFVa6fwx1QmAW535Ec2j6dDI67R9GhcW1aVGQ7tpcf6tiavxxf6N_MmyOM5NbL-hhP8lQulk5J5QHJ93L0kRz08NGxg5rgMVF"/>
+</div>
+<div class="absolute bottom-2 right-2 w-7 h-7 bg-primary rounded-full border-[3px] border-surface flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+</div>
+<div class="flex-1 flex flex-col md:flex-row items-center md:items-end justify-between gap-4 pb-4 md:pl-2">
+<div class="text-center md:text-left">
+<h2 class="font-h2 text-h2 text-on-surface font-bold">yogin kumar</h2>
+<p class="text-primary font-medium">@yogin_kumar</p>
+</div>
+<button class="flex items-center gap-2 px-6 py-2.5 bg-surface-container-highest/50 hover:bg-surface-container-highest text-on-surface-variant font-medium rounded-full transition-all border border-outline-variant/20 mb-2">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+<span class="text-sm">Edit Profile</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 px-2">
+<!-- Left Column: Bio & Stats -->
+<div class="lg:col-span-4 space-y-8">
+<!-- About Card -->
+<div class="glass-card rounded-[32px] p-8">
+<h3 class="font-label-sm uppercase tracking-wider text-primary font-bold mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">info</span>
+                            About
+                        </h3>
+<p class="text-on-surface-variant text-sm leading-relaxed mb-8">
+                            Senior UI Designer &amp; Digital Architect. Passionate about creating seamless workflows.
+                        </p>
+<div class="space-y-4">
+<div class="flex items-center gap-4 p-4 rounded-2xl bg-surface-container-low/50 border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary">mail</span>
+<div>
+<p class="text-[10px] uppercase tracking-wider text-on-surface-variant/70 font-bold">Email Address</p>
+<p class="font-medium text-sm">yoginkumar38@gmail.com</p>
+</div>
+</div>
+<div class="flex items-center gap-4 p-4 rounded-2xl bg-surface-container-low/50 border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary">calendar_today</span>
+<div>
+<p class="text-[10px] uppercase tracking-wider text-on-surface-variant/70 font-bold">Joined Date</p>
+<p class="font-medium text-sm">May 5, 2026</p>
+</div>
+</div>
+<div class="flex items-center gap-4 p-4 rounded-2xl bg-surface-container-low/50 border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary">location_on</span>
+<div>
+<p class="text-[10px] uppercase tracking-wider text-on-surface-variant/70 font-bold">Location</p>
+<p class="font-medium text-sm">San Francisco, CA</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Stats Bento -->
+<div class="grid grid-cols-2 gap-4">
+<div class="glass-card rounded-[24px] p-6 text-center">
+<p class="text-h2 font-bold text-on-surface">1</p>
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">Notes Saved</p>
+</div>
+<div class="glass-card rounded-[24px] p-6 text-center">
+<p class="text-h2 font-bold text-on-surface">0</p>
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">Shared Pads</p>
+</div>
+</div>
+</div>
+<!-- Right Column: Achievements & Activity -->
+<div class="lg:col-span-8 space-y-8">
+<!-- Achievements Section -->
+<div class="glass-card rounded-[32px] p-8">
+<div class="flex items-center justify-between mb-8">
+<h3 class="font-label-sm uppercase tracking-wider text-primary font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">military_tech</span>
+                                Achievements
+                            </h3>
+<span class="text-[10px] font-bold text-primary bg-primary-container/20 px-3 py-1 rounded-full uppercase">0% Complete</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Achievement 1 -->
+<div class="p-6 rounded-[24px] bg-primary-container/5 border border-primary/10 flex flex-col items-center text-center relative overflow-hidden group">
+<div class="absolute top-3 right-3 w-5 h-5 bg-primary text-on-primary rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-[12px]">check</span>
+</div>
+<div class="w-14 h-14 rounded-full bg-surface-container-lowest flex items-center justify-center mb-4 text-primary shadow-sm">
+<span class="material-symbols-outlined text-[28px]">star</span>
+</div>
+<h4 class="text-sm font-bold mb-1">Early Adopter</h4>
+<p class="text-[10px] text-on-surface-variant leading-tight">SyncPad Founding Member</p>
+</div>
+<!-- Achievement 2 -->
+<div class="p-6 rounded-[24px] bg-surface-container-low/40 border border-outline-variant/10 flex flex-col items-center text-center opacity-70">
+<div class="w-14 h-14 rounded-full bg-surface-container-lowest flex items-center justify-center mb-4 text-on-surface-variant/40">
+<span class="material-symbols-outlined text-[28px]">description</span>
+</div>
+<h4 class="text-sm font-bold mb-1">Note Ninja</h4>
+<p class="text-[10px] text-on-surface-variant leading-tight">Write 9 more notes to unlock</p>
+</div>
+<!-- Achievement 3 -->
+<div class="p-6 rounded-[24px] bg-surface-container-low/40 border border-outline-variant/10 flex flex-col items-center text-center opacity-70">
+<div class="w-14 h-14 rounded-full bg-surface-container-lowest flex items-center justify-center mb-4 text-on-surface-variant/40">
+<span class="material-symbols-outlined text-[28px]">group</span>
+</div>
+<h4 class="text-sm font-bold mb-1">Team Player</h4>
+<p class="text-[10px] text-on-surface-variant leading-tight">Share a note to unlock</p>
+</div>
+</div>
+</div>
+<!-- Recent Activity Section -->
+<div class="glass-card rounded-[32px] p-8">
+<div class="flex items-center mb-8">
+<h3 class="font-label-sm uppercase tracking-wider text-primary font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+                                Recent Activity
+                            </h3>
+</div>
+<div class="space-y-4">
+<!-- Activity Item -->
+<div class="flex items-start gap-4 p-4 rounded-2xl hover:bg-surface-container-low transition-colors group border border-transparent hover:border-outline-variant/10">
+<div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined">description</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<h4 class="font-bold text-on-surface text-sm">Updated "sdfghj"</h4>
+<span class="text-[10px] text-on-surface-variant font-medium">3m ago</span>
+</div>
+<p class="text-on-surface-variant text-[12px] mt-1">No content preview available.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>
