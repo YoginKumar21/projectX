@@ -55,6 +55,18 @@ function Editor() {
   const [joined, setJoined] = useState(false);
   const [socketConnected, setSocketConnected] = useState(socket.connected);
 
+  // Workspace Hub states
+  const [workspaces, setWorkspaces] = useState([]);
+  const [loadingWorkspaces, setLoadingWorkspaces] = useState(false);
+  const [newWorkspaceTitle, setNewWorkspaceTitle] = useState("");
+  const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
+
+  // Collaborator management modal states
+  const [showCollaboratorModal, setShowCollaboratorModal] = useState(false);
+  const [collaboratorEmail, setCollaboratorEmail] = useState("");
+  const [isAddingCollaborator, setIsAddingCollaborator] = useState(false);
+  const [activeNoteDetails, setActiveNoteDetails] = useState(null);
+
   // File Tree and Editor Code State
   const [files, setFiles] = useState([]);
   const [activeFileName, setActiveFileName] = useState("index.js");
@@ -261,6 +273,11 @@ function Editor() {
       setAiLoading(false);
     });
 
+    socket.on("access-denied", ({ message }) => {
+      toast.error(message || "Access Denied: You are not authorized to join this room.");
+      handleLeaveRoom();
+    });
+
     return () => {
       socket.off("room-init");
       socket.off("code-room-users");
@@ -272,6 +289,7 @@ function Editor() {
       socket.off("cursor-update-receive");
       socket.off("remove-cursor");
       socket.off("ai-error");
+      socket.off("access-denied");
     };
   }, [joined, roomId]);
 
@@ -443,9 +461,11 @@ function Editor() {
       return;
     }
 
-    // Only allow .html and .py files
-    if (!name.endsWith(".html") && !name.endsWith(".py")) {
-      toast.error("Only .html and .py files are allowed in this workspace!");
+    // Allow standard coding and web extensions
+    const allowedExtensions = [".js", ".py", ".html", ".css", ".c", ".cpp", ".java"];
+    const hasAllowedExtension = allowedExtensions.some(ext => name.toLowerCase().endsWith(ext));
+    if (!hasAllowedExtension) {
+      toast.error("Allowed extensions are: .js, .py, .html, .css, .c, .cpp, .java");
       return;
     }
 
@@ -480,7 +500,7 @@ function Editor() {
   // Save Workspace Action
   const handleSaveWorkspace = async () => {
     try {
-      const workspaceTitle = prompt("Enter a name for this workspace:", `Code Workspace: ${roomId}`);
+      const workspaceTitle = prompt("Enter a name for this workspace:", activeNoteDetails?.title || `Code Workspace: ${roomId}`);
       if (workspaceTitle === null) return; // User cancelled
       
       const payload = {
@@ -491,9 +511,151 @@ function Editor() {
 
       await API.post("/notes/save-workspace", payload);
       toast.success("Workspace saved to My Notes successfully!");
+      fetchCurrentWorkspaceDetails();
     } catch (err) {
       console.error("Save Workspace Error:", err);
       toast.error(err.response?.data?.message || "Failed to save workspace");
+    }
+  };
+
+  // Fetch workspaces list from DB
+  const fetchWorkspaces = async () => {
+    try {
+      setLoadingWorkspaces(true);
+      const res = await API.get("/notes");
+      if (res.data) {
+        const codeNotes = res.data.filter(n => n.isCodeWorkspace);
+        setWorkspaces(codeNotes);
+      }
+    } catch (err) {
+      console.error("Failed to load workspaces:", err);
+    } finally {
+      setLoadingWorkspaces(false);
+    }
+  };
+
+  // Launch workspace from DB dashboard list
+  const handleJoinWorkspace = (roomCode) => {
+    setRoomId(roomCode);
+    setJoined(true);
+    window.location.hash = `#room-${roomCode}`;
+
+    socket.emit("join-room", {
+      roomId: roomCode,
+      userId,
+      userName: inputUserName
+    });
+
+    toast.success(`Launching Workspace: ${roomCode}`);
+  };
+
+  // Initialize and Save new Code Workspace in database
+  const handleCreateWorkspace = async (e) => {
+    if (e) e.preventDefault();
+    if (!newWorkspaceTitle.trim()) {
+      toast.error("Please enter a workspace title");
+      return;
+    }
+
+    try {
+      setIsCreatingWorkspace(true);
+      const generatedRoomId = "SYNC-" + Math.floor(1000 + Math.random() * 9000);
+      
+      const defaultFiles = [
+        { name: "index.js", lang: "javascript", content: `console.log("Welcome to your collaborative workspace!");\n\nfunction add(a, b) {\n  return a + b;\n}\n\nconsole.log("3 + 7 =", add(3, 7));\n` },
+        { name: "script.py", lang: "python", content: `def greet(name):\n    print(f"Hello, {name}!")\n\ngreet("Teammate")\n` },
+        { name: "index.html", lang: "html", content: `<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body {\n      background: #0f172a;\n      color: #e2e8f0;\n      font-family: sans-serif;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n      height: 100vh;\n      margin: 0;\n    }\n    h1 { color: #10b981; }\n  </style>\n</head>\n<body>\n  <h1>Welcome to Collaborative SyncPad Code IDE</h1>\n</body>\n</html>\n` }
+      ];
+
+      const payload = {
+        roomId: generatedRoomId,
+        title: newWorkspaceTitle.trim(),
+        files: defaultFiles
+      };
+
+      await API.post("/notes/save-workspace", payload);
+      toast.success("Workspace created and initialized!");
+      setNewWorkspaceTitle("");
+      
+      // Auto launch
+      handleJoinWorkspace(generatedRoomId);
+    } catch (err) {
+      console.error("Failed to create workspace:", err);
+      toast.error(err.response?.data?.message || "Failed to create workspace");
+    } finally {
+      setIsCreatingWorkspace(false);
+    }
+  };
+
+  // Fetch active workspace profile and collaborator records
+  const fetchCurrentWorkspaceDetails = async () => {
+    try {
+      const res = await API.get("/notes");
+      if (res.data) {
+        const workspace = res.data.find(n => n.isCodeWorkspace && n.codeRoomId === roomId);
+        if (workspace) {
+          setActiveNoteDetails(workspace);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch active workspace details:", err);
+    }
+  };
+
+  // Invite dynamic workspace collaborator via existing Note share API
+  const handleAddWorkspaceCollaborator = async (e) => {
+    if (e) e.preventDefault();
+    if (!collaboratorEmail.trim()) {
+      toast.error("Please enter a collaborator email");
+      return;
+    }
+    if (!activeNoteDetails) {
+      toast.error("Workspace details still loading...");
+      return;
+    }
+
+    try {
+      setIsAddingCollaborator(true);
+      const noteId = activeNoteDetails._id;
+      const res = await API.post(`/notes/${noteId}/share`, { email: collaboratorEmail.trim() });
+      toast.success(res.data?.message || "Collaborator invited successfully!");
+      setCollaboratorEmail("");
+      fetchCurrentWorkspaceDetails();
+    } catch (err) {
+      console.error("Share workspace failed:", err);
+      toast.error(err.response?.data?.message || "Failed to add collaborator");
+    } finally {
+      setIsAddingCollaborator(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!joined) {
+      fetchWorkspaces();
+    }
+  }, [joined]);
+
+  useEffect(() => {
+    if (joined && roomId) {
+      fetchCurrentWorkspaceDetails();
+    }
+  }, [joined, roomId]);
+
+  // Save Individual File to Personal Notes Action
+  const handleSaveFileAsNote = async (fileName, fileContent) => {
+    try {
+      const payload = {
+        title: fileName,
+        content: fileContent || "// No content",
+        tags: ["Code", fileName.split(".").pop()],
+        isPinned: false
+      };
+
+      await API.post("/notes", payload);
+      toast.success(`File "${fileName}" saved to your Notes!`);
+    } catch (err) {
+      console.error("Save file as note error:", err);
+      toast.error(err.response?.data?.message || "Failed to save file as note");
     }
   };
 
@@ -570,26 +732,18 @@ function Editor() {
     }
 
     try {
-      const response = await fetch("https://emkc.org/api/v2/piston/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          language: pistonLang,
-          version: "*",
-          files: [
-            {
-              name: activeFileName,
-              content: codeContent
-            }
-          ]
-        })
+      const response = await API.post("/notes/run-code", {
+        language: pistonLang,
+        version: "*",
+        files: [
+          {
+            name: activeFileName,
+            content: codeContent
+          }
+        ]
       });
 
-      if (!response.ok) {
-        throw new Error("Piston API error status " + response.status);
-      }
-
-      const resData = await response.json();
+      const resData = response.data;
       
       const newOutputs = [];
       if (resData.run) {
@@ -809,70 +963,180 @@ function Editor() {
   if (!joined) {
     return (
       <AppShell>
-        <div className="flex items-center justify-center min-h-[calc(100vh-64px-40px)] select-none">
-          <div className="relative w-full max-w-xl p-8 bg-white dark:bg-[#0f172a] border border-slate-100 dark:border-slate-800 rounded-[32px] shadow-2xl backdrop-blur-2xl">
-            {/* Absolute visual highlights */}
-            <div className="absolute -top-12 -left-12 w-32 h-32 bg-primary/20 rounded-full blur-[48px]" />
-            <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-secondary/20 rounded-full blur-[48px]" />
-
-            <div className="flex flex-col items-center text-center mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20 mb-4 animate-pulse">
-                <Code className="text-white w-8 h-8" />
+        <div className="flex flex-col min-h-[calc(100vh-64px-40px)] p-6 md:p-8 select-none">
+          {/* Header row with collaborator identity card */}
+          <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#0f172a] border border-slate-100 dark:border-slate-800 p-6 rounded-3xl shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary to-secondary flex items-center justify-center text-white shadow-md">
+                <Code className="w-6 h-6" />
               </div>
-              <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                SyncPad IDE Terminal
-              </h1>
-              <p className="text-on-surface-variant/80 text-sm mt-2 font-medium">
-                High-performance real-time collaborative workspace.
-              </p>
+              <div>
+                <h1 className="text-xl font-extrabold tracking-tight text-slate-800 dark:text-slate-100">
+                  SyncPad IDE Terminal Workspace Hub
+                </h1>
+                <p className="text-xs text-on-surface-variant font-semibold mt-0.5">
+                  High-performance real-time collaborative development environment.
+                </p>
+              </div>
             </div>
-
-            <form onSubmit={handleJoinRoom} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-wider text-primary">
-                  Collaborator Name
-                </label>
+            
+            <div className="flex items-center gap-3.5 border-t md:border-t-0 pt-4 md:pt-0 border-slate-100 dark:border-slate-800">
+              <span className="text-[10px] font-black uppercase tracking-widest text-outline">Collaborating As:</span>
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 px-3.5 py-1.5 rounded-full border border-slate-200/40 dark:border-slate-700/40">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
                 <input
                   type="text"
                   required
                   value={inputUserName}
                   onChange={(e) => setInputUserName(e.target.value)}
-                  placeholder="Enter your name..."
-                  className="w-full px-5 py-4 bg-[#f2f4f6] dark:bg-[#1e293b] border border-slate-100 dark:border-slate-800 outline-none font-bold text-on-surface text-sm transition-all duration-300 rounded-2xl focus:border-primary/40 focus:ring-4 focus:ring-primary/5"
+                  placeholder="Collaborator Name"
+                  className="bg-transparent border-none p-0 text-xs font-black text-slate-700 dark:text-slate-300 outline-none w-28 focus:ring-0"
                 />
               </div>
+            </div>
+          </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-black uppercase tracking-wider text-primary">
-                    Room Workspace ID
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1 items-start">
+            {/* Left Column: Create workspace form card */}
+            <div className="lg:col-span-5 bg-white dark:bg-[#0f172a] border border-slate-100 dark:border-slate-800 rounded-[32px] p-6 sm:p-8 shadow-xl relative overflow-hidden">
+              <div className="absolute -top-12 -left-12 w-32 h-32 bg-primary/15 rounded-full blur-[48px]" />
+              
+              <h2 className="text-lg font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary shrink-0 animate-spin" style={{ animationDuration: "6s" }} />
+                Launch New Project
+              </h2>
+              <p className="text-xs text-on-surface-variant font-medium mt-1 leading-relaxed">
+                Create a secure, synchronized project workspace. You will instantly become the Workspace Owner and can share it securely with teammates.
+              </p>
+
+              <form onSubmit={handleCreateWorkspace} className="space-y-6 mt-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-primary">
+                    Project Workspace Name
                   </label>
+                  <input
+                    type="text"
+                    required
+                    value={newWorkspaceTitle}
+                    onChange={(e) => setNewWorkspaceTitle(e.target.value)}
+                    placeholder="e.g. My NextJS App"
+                    className="w-full px-4 py-3.5 bg-slate-50 dark:bg-[#1e293b]/40 border border-slate-200/60 dark:border-slate-800 outline-none font-bold text-on-surface text-sm transition-all duration-300 rounded-2xl focus:border-primary/40 focus:ring-4 focus:ring-primary/5"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isCreatingWorkspace}
+                  className="w-full py-3.5 bg-gradient-to-r from-primary to-secondary hover:scale-[1.01] hover:shadow-lg hover:shadow-primary/10 active:scale-[0.99] text-white font-extrabold text-xs uppercase tracking-widest rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50"
+                >
+                  {isCreatingWorkspace ? "Initializing..." : "Create IDE Workspace"}
+                  <ArrowRight size={14} />
+                </button>
+              </form>
+
+              <div className="mt-8 border-t border-slate-100 dark:border-slate-800/80 pt-6">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#6c7086]">Join via Custom Room ID</span>
+                  <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[8px] font-black uppercase text-outline rounded">Legacy</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={inputRoomId}
+                    onChange={(e) => setInputRoomId(e.target.value.toUpperCase())}
+                    placeholder="Enter Room Code..."
+                    className="flex-1 px-4 py-2 bg-slate-50 dark:bg-[#1e293b]/20 border border-slate-200/60 dark:border-slate-800 rounded-xl outline-none font-bold text-xs"
+                  />
                   <button
-                    type="button"
-                    onClick={handleGenerateRoom}
-                    className="text-xs font-bold text-secondary hover:underline transition-all"
+                    onClick={() => handleJoinWorkspace(inputRoomId)}
+                    disabled={!inputRoomId.trim()}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200/60 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-800 dark:text-slate-100 font-extrabold text-xs rounded-xl transition-all disabled:opacity-50"
                   >
-                    Generate Room ID
+                    Join
                   </button>
                 </div>
-                <input
-                  type="text"
-                  required
-                  value={inputRoomId}
-                  onChange={(e) => setInputRoomId(e.target.value.toUpperCase())}
-                  placeholder="Paste or Type Room Workspace ID (e.g. SYNC-4829)"
-                  className="w-full px-5 py-4 bg-[#f2f4f6] dark:bg-[#1e293b] border border-slate-100 dark:border-slate-800 outline-none font-bold text-on-surface text-sm tracking-widest transition-all duration-300 rounded-2xl focus:border-primary/40 focus:ring-4 focus:ring-primary/5"
-                />
+              </div>
+            </div>
+
+            {/* Right Column: Your collaborative workspaces grid */}
+            <div className="lg:col-span-7 bg-white dark:bg-[#0f172a] border border-slate-100 dark:border-slate-800 rounded-[32px] p-6 sm:p-8 shadow-xl flex flex-col h-full min-h-[460px]">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-5">
+                <h2 className="text-lg font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-secondary shrink-0" />
+                  Your Active Workspaces
+                </h2>
+                <span className="text-[9px] font-black uppercase text-outline bg-slate-50 dark:bg-slate-800 px-3.5 py-1 rounded-full border border-slate-200/40 dark:border-slate-700/40">
+                  {workspaces.length} Project{workspaces.length !== 1 && "s"} Registered
+                </span>
               </div>
 
-              <button
-                type="submit"
-                className="w-full py-4 bg-gradient-to-r from-primary to-secondary hover:scale-[1.01] hover:shadow-lg hover:shadow-primary/10 active:scale-[0.99] text-white font-extrabold text-sm rounded-2xl flex items-center justify-center gap-2 transition-all duration-300"
-              >
-                Launch Collaboration Workspace
-                <ArrowRight size={18} />
-              </button>
-            </form>
+              <div className="flex-1 overflow-y-auto max-h-[380px] pr-1 space-y-4 no-scrollbar">
+                {loadingWorkspaces ? (
+                  <div className="py-20 flex flex-col items-center justify-center gap-3">
+                    <Loader className="w-8 h-8 text-primary animate-spin" />
+                    <p className="text-xs font-bold text-slate-500">Querying project metadata...</p>
+                  </div>
+                ) : workspaces.length > 0 ? (
+                  workspaces.map((workspace) => {
+                    const isOwner = workspace.owner?._id === userId || workspace.owner === userId;
+                    let filesCount = 0;
+                    try {
+                      filesCount = JSON.parse(workspace.content || "[]").length;
+                    } catch (e) {
+                      filesCount = 3;
+                    }
+
+                    return (
+                      <div
+                        key={workspace._id}
+                        className="glass-card-premium p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 hover:-translate-y-0.5 transition-all shadow-sm flex items-center justify-between gap-4 group relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 bottom-0 left-0 w-1 bg-gradient-to-b from-primary to-secondary opacity-60" />
+
+                        <div className="min-w-0 pl-1">
+                          <div className="flex items-center gap-2.5">
+                            <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-100 truncate max-w-[200px]">
+                              {workspace.title}
+                            </h3>
+                            {isOwner ? (
+                              <span className="px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400 text-[8px] font-black uppercase rounded-md shrink-0">
+                                Owner
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 dark:text-emerald-400 text-[8px] font-black uppercase rounded-md shrink-0">
+                                Collaborator
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center gap-3 text-[10px] text-outline font-bold uppercase mt-2 tracking-wider">
+                            <span className="text-primary font-extrabold">Room: {workspace.codeRoomId}</span>
+                            <span>•</span>
+                            <span>{filesCount} Source File{filesCount !== 1 && "s"}</span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleJoinWorkspace(workspace.codeRoomId)}
+                          className="px-4 py-2 bg-gradient-to-r from-primary to-secondary text-white font-extrabold text-xs uppercase tracking-widest rounded-xl flex items-center gap-1 hover:shadow-lg hover:shadow-primary/10 hover:scale-[1.02] transition-all"
+                        >
+                          Launch
+                          <ExternalLink size={12} />
+                        </button>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="py-16 text-center flex flex-col items-center">
+                    <span className="material-symbols-outlined text-4xl text-outline-variant mb-3">folder_open</span>
+                    <p className="text-xs font-black text-slate-800 dark:text-slate-200">No project workspaces registered</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 max-w-[280px] mx-auto">
+                      Get started by typing a custom project title on the left and initializing your collaborative IDE session!
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </AppShell>
@@ -897,9 +1161,17 @@ function Editor() {
               <button 
                 onClick={copyRoomIdLink} 
                 className="p-1 hover:bg-[#1e2030] hover:text-white rounded transition-colors" 
-                title="Copy Invite Link"
+                title="Copy Room URL"
               >
-                <UserPlus size={13} />
+                <Copy size={13} />
+              </button>
+              <button
+                onClick={() => setShowCollaboratorModal(true)}
+                className="flex items-center gap-1 ml-2 px-2.5 py-0.5 bg-indigo-500/10 border border-indigo-500/20 hover:border-indigo-500/40 text-indigo-400 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
+                title="Manage Project Collaborators"
+              >
+                <Users size={11} className="shrink-0" />
+                <span>Collaborators ({activeNoteDetails?.sharedWith?.length || 0})</span>
               </button>
             </div>
           </div>
@@ -1058,7 +1330,7 @@ function Editor() {
                           onClick={() => handleSelectFile(file.name)}
                           className={`group flex items-center gap-2.5 px-3.5 py-1.5 text-xs font-semibold cursor-pointer transition-colors relative ${
                             isActive && !isFolder
-                              ? "bg-primary/10 text-primary-light" 
+                              ? "bg-primary/20 text-indigo-300" 
                               : "text-[#a6adc8] hover:bg-[#1e2030]/50 hover:text-white"
                           }`}
                         >
@@ -1083,6 +1355,20 @@ function Editor() {
                                 </div>
                               ))}
                             </div>
+                          )}
+
+                          {/* Save Specific File as Note */}
+                          {!isFolder && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSaveFileAsNote(file.name, file.content);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-emerald-400 transition-opacity"
+                              title="Save file to My Notes"
+                            >
+                              <Save size={12} />
+                            </button>
                           )}
 
                           {/* Delete File Trigger Button */}
@@ -1447,7 +1733,7 @@ function Editor() {
         </div>
 
         {/* IDE Footer StatusBar */}
-        <div className="h-6 bg-[#090b10] border-t border-[#1e2030] px-3 flex items-center justify-between text-[10px] text-[#45475a] font-extrabold select-none select-none">
+        <div className="h-6 bg-[#090b10] border-t border-[#1e2030] px-3 flex items-center justify-between text-[10px] text-[#45475a] font-extrabold select-none">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5">
               <div className={`w-1.5 h-1.5 rounded-full ${socketConnected ? "bg-[#10b981]" : "bg-red-400"}`}></div>
@@ -1465,6 +1751,81 @@ function Editor() {
             <span className="hidden sm:inline text-[#585b70]">UTF-8</span>
           </div>
         </div>
+
+        {/* COLLABORATOR MANAGEMENT MODAL */}
+        {showCollaboratorModal && (
+          <div className="fixed inset-0 bg-[#090b10]/80 backdrop-blur-md flex items-center justify-center z-[100] animate-in fade-in duration-200">
+            <div className="bg-[#0f172a] border border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
+              <button
+                onClick={() => setShowCollaboratorModal(false)}
+                className="absolute top-4 right-4 p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+
+              <h3 className="text-sm font-extrabold text-slate-100 flex items-center gap-2 mb-2">
+                <Users className="w-5 h-5 text-indigo-400" />
+                Add Collaborators to Workspace
+              </h3>
+              <p className="text-[11px] text-slate-400 font-medium mb-4">
+                Invite team members to code with you in real-time. They will instantly receive a notification and can join this IDE session!
+              </p>
+
+              {/* Email Invite Form */}
+              <form onSubmit={handleAddWorkspaceCollaborator} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black uppercase tracking-wider text-indigo-400">Collaborator Email</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      required
+                      placeholder="teammate@company.com"
+                      value={collaboratorEmail}
+                      onChange={(e) => setCollaboratorEmail(e.target.value)}
+                      className="flex-1 px-3.5 py-2.5 bg-[#1e293b]/50 border border-slate-800 rounded-xl outline-none font-bold text-xs text-white placeholder:text-slate-500 focus:border-indigo-500/40"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isAddingCollaborator || !collaboratorEmail.trim()}
+                      className="px-4 py-2.5 bg-gradient-to-r from-primary to-secondary text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all disabled:opacity-50"
+                    >
+                      {isAddingCollaborator ? "Inviting..." : "Invite"}
+                    </button>
+                  </div>
+                </div>
+              </form>
+
+              {/* Current Collaborators list */}
+              <div className="mt-6 pt-5 border-t border-slate-800/80">
+                <h4 className="text-[10px] font-black uppercase tracking-wider text-[#6c7086] mb-3">Workspace Access List</h4>
+                
+                <div className="space-y-2.5 max-h-[160px] overflow-y-auto pr-1 no-scrollbar">
+                  {/* Owner */}
+                  <div className="flex items-center justify-between bg-slate-800/10 border border-slate-800/30 p-2.5 rounded-xl">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-200 truncate">{activeNoteDetails?.owner?.name || "Workspace Creator"}</p>
+                      <p className="text-[9px] text-[#585b70] truncate">{activeNoteDetails?.owner?.email || "Owner Account"}</p>
+                    </div>
+                    <span className="px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[8px] font-black uppercase rounded-md">Creator</span>
+                  </div>
+
+                  {/* Shared Users */}
+                  {activeNoteDetails?.sharedWith && activeNoteDetails.sharedWith.length > 0 ? (
+                    activeNoteDetails.sharedWith.map((collab) => (
+                      <div key={collab._id} className="flex items-center justify-between bg-slate-800/5 border border-slate-800/20 p-2.5 rounded-xl">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-200 truncate">{collab.name}</p>
+                          <p className="text-[9px] text-[#585b70] truncate">{collab.email}</p>
+                        </div>
+                        <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase rounded-md font-extrabold">Can Edit</span>
+                      </div>
+                    ))
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </AppShell>

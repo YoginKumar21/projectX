@@ -39,6 +39,16 @@ function NoteForm({
   const [commentSection, setCommentSection] = useState("General Section");
   const [isAddingComment, setIsAddingComment] = useState(false);
   const [showColorMenu, setShowColorMenu] = useState(false);
+  const [showHighlightMenu, setShowHighlightMenu] = useState(false);
+
+  const highlightColors = [
+    { name: "Yellow Glow", hex: "#fef08a" },
+    { name: "Green Mint", hex: "#bbf7d0" },
+    { name: "Blue Sky", hex: "#bfdbfe" },
+    { name: "Pink Rose", hex: "#fbcfe8" },
+    { name: "Orange Sunset", hex: "#fed7aa" },
+    { name: "Purple Lavender", hex: "#e9d5ff" }
+  ];
 
   const isEditing = Boolean(editingId);
   const editorRef = useRef(null);
@@ -126,6 +136,10 @@ function NoteForm({
       setTitle(newTitle);
     };
 
+    const handleReceiveComments = (newComments) => {
+      setComments(newComments || []);
+    };
+
     // Attach Sockets
     socket.on("collaborators-update", handleCollaboratorsUpdate);
     socket.on("live-cursors", handleLiveCursors);
@@ -135,6 +149,7 @@ function NoteForm({
     socket.on("user-stop-typing", handleUserStopTyping);
     socket.on("receive-changes", handleReceiveChanges);
     socket.on("receive-title-changes", handleReceiveTitleChanges);
+    socket.on("receive-comments", handleReceiveComments);
 
     // Fetch note profile and sharing fields
     fetchRealCollaborators();
@@ -149,6 +164,7 @@ function NoteForm({
       socket.off("user-stop-typing", handleUserStopTyping);
       socket.off("receive-changes", handleReceiveChanges);
       socket.off("receive-title-changes", handleReceiveTitleChanges);
+      socket.off("receive-comments", handleReceiveComments);
     };
   }, [editingId]);
 
@@ -336,14 +352,22 @@ function NoteForm({
       section: commentSection || "General Document"
     };
 
-    setComments([...comments, newComment]);
+    const nextComments = [...comments, newComment];
+    setComments(nextComments);
+    if (editingId) {
+      socket.emit("send-comments", { noteId: editingId, comments: nextComments });
+    }
     setCommentText("");
     setIsAddingComment(false);
     toast.success("Comment pinned to section!");
   };
 
   const handleResolveComment = (id) => {
-    setComments(comments.filter(c => c.id !== id));
+    const nextComments = comments.filter(c => c.id !== id);
+    setComments(nextComments);
+    if (editingId) {
+      socket.emit("send-comments", { noteId: editingId, comments: nextComments });
+    }
     toast.success("Comment thread resolved");
   };
 
@@ -535,6 +559,46 @@ function NoteForm({
                     {color.name}
                   </button>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Highlight Color Dropdown */}
+          <div className="relative">
+            <button 
+              onClick={() => setShowHighlightMenu(!showHighlightMenu)} 
+              className="p-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 rounded-lg text-slate-700 dark:text-slate-300 flex items-center gap-1"
+              title="Highlight Color"
+            >
+              <span className="material-symbols-outlined text-[18px]">border_color</span>
+              <span className="text-[10px] font-black uppercase text-secondary">H</span>
+            </button>
+            {showHighlightMenu && (
+              <div className="absolute top-9 left-0 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl shadow-xl flex flex-col gap-1.5 w-36">
+                <p className="text-[9px] font-black uppercase tracking-widest text-outline border-b pb-1">Highlight Colors</p>
+                {highlightColors.map((color) => (
+                  <button
+                    key={color.name}
+                    onClick={() => {
+                      applyFormat("hiliteColor", color.hex);
+                      setShowHighlightMenu(false);
+                    }}
+                    className="flex items-center gap-2 px-1.5 py-1 text-xs text-left hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg font-medium text-slate-700 dark:text-slate-300"
+                  >
+                    <span className="w-3.5 h-3.5 rounded-full border border-slate-200/40" style={{ backgroundColor: color.hex }} />
+                    {color.name}
+                  </button>
+                ))}
+                <button
+                  onClick={() => {
+                    applyFormat("hiliteColor", "transparent");
+                    setShowHighlightMenu(false);
+                  }}
+                  className="flex items-center gap-2 px-1.5 py-1 text-xs text-left text-red-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg font-semibold"
+                >
+                  <span className="w-3.5 h-3.5 rounded-full border border-dashed border-red-300 flex items-center justify-center text-[10px]">✕</span>
+                  Clear Highlight
+                </button>
               </div>
             )}
           </div>

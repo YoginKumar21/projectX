@@ -4,6 +4,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 import logo from "../assets/logo.png";
+import { reconnectSocket } from "../socket";
 
 function Login() {
   const [formData, setFormData] = useState({
@@ -38,6 +39,9 @@ function Login() {
       localStorage.setItem("userBanner", res.data.user.banner || "");
 
       window.dispatchEvent(new Event("syncpad-user-updated"));
+
+      // Dynamically reconnect and authorize the WebSocket connection with the new token
+      reconnectSocket();
 
       toast.success("Login successful");
       navigate("/dashboard");

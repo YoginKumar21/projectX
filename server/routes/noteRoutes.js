@@ -18,6 +18,7 @@ const {
   restoreVersion,
   saveAIVersion,
   saveWorkspace,
+  runCode,
 } = require("../controllers/noteController");
 
 // Create + Get all notes
@@ -53,5 +54,8 @@ router.post("/:id/save-ai-version", protect, saveAIVersion);
 
 // Save complete code IDE workspace
 router.post("/save-workspace", protect, saveWorkspace);
+
+// Run code proxy router
+router.post("/run-code", protect, runCode);
 
 module.exports = router;

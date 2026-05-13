@@ -111,6 +111,10 @@ const noteSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    syncGroupId: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true },
 );

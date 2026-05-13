@@ -25,6 +25,21 @@ const populateNoteById = async (noteId) => {
     .populate("sharedWith", "name email");
 };
 
+const syncSharedWithList = async (syncGroupId) => {
+  if (!syncGroupId) return;
+
+  // Find all notes in this sync group
+  const notes = await Note.find({ syncGroupId });
+  const owners = notes.map((n) => n.owner.toString());
+
+  for (const n of notes) {
+    // sharedWith for note n is all owners in the group except note n's owner
+    const others = owners.filter((o) => o !== n.owner.toString());
+    n.sharedWith = others;
+    await n.save();
+  }
+};
+
 // POST /api/notes
 const createNote = async (req, res) => {
   try {
@@ -170,29 +185,65 @@ const updateNote = async (req, res) => {
     const attachmentsChanged =
       JSON.stringify(note.attachments || []) !== JSON.stringify(newAttachments);
 
-    if (titleChanged || contentChanged || tagsChanged) {
-      note.versions.push({
-        title: note.title,
-        content: note.content,
-        tags: note.tags || [],
-        editedAt: new Date(),
-      });
+    const syncGroupId = note.syncGroupId;
 
-      if (note.versions.length > MAX_VERSIONS) {
-        note.versions = note.versions.slice(-MAX_VERSIONS);
+    if (syncGroupId) {
+      const siblings = await Note.find({ syncGroupId });
+
+      for (const sibling of siblings) {
+        const sibTitleChanged = sibling.title !== newTitle;
+        const sibContentChanged = sibling.content !== newContent;
+        const sibTagsChanged = JSON.stringify(sibling.tags || []) !== JSON.stringify(newTags);
+
+        if (sibTitleChanged || sibContentChanged || sibTagsChanged) {
+          sibling.versions.push({
+            title: sibling.title,
+            content: sibling.content,
+            tags: sibling.tags || [],
+            editedAt: new Date(),
+          });
+
+          if (sibling.versions.length > MAX_VERSIONS) {
+            sibling.versions = sibling.versions.slice(-MAX_VERSIONS);
+          }
+        }
+
+        sibling.title = newTitle;
+        sibling.content = newContent;
+        sibling.tags = newTags;
+        sibling.attachments = newAttachments;
+
+        if (sibling._id.toString() === note._id.toString() && typeof isPinned === "boolean" && isOwner) {
+          sibling.isPinned = isPinned;
+        }
+
+        await sibling.save();
       }
+    } else {
+      if (titleChanged || contentChanged || tagsChanged) {
+        note.versions.push({
+          title: note.title,
+          content: note.content,
+          tags: note.tags || [],
+          editedAt: new Date(),
+        });
+
+        if (note.versions.length > MAX_VERSIONS) {
+          note.versions = note.versions.slice(-MAX_VERSIONS);
+        }
+      }
+
+      note.title = newTitle;
+      note.content = newContent;
+      note.tags = newTags;
+      note.attachments = newAttachments;
+
+      if (typeof isPinned === "boolean" && isOwner) {
+        note.isPinned = isPinned;
+      }
+
+      await note.save();
     }
-
-    note.title = newTitle;
-    note.content = newContent;
-    note.tags = newTags;
-    note.attachments = newAttachments;
-
-    if (typeof isPinned === "boolean" && isOwner) {
-      note.isPinned = isPinned;
-    }
-
-    await note.save();
 
     if (
       (titleChanged || contentChanged || tagsChanged || attachmentsChanged) &&
@@ -229,6 +280,14 @@ const updateNote = async (req, res) => {
     const updatedNote = await populateNoteById(note._id);
 
     req.app.get("io").emit("note-updated", updatedNote);
+
+    if (note.syncGroupId) {
+      const siblings = await Note.find({ syncGroupId: note.syncGroupId, _id: { $ne: note._id } });
+      for (const sibling of siblings) {
+        const updatedSibling = await populateNoteById(sibling._id);
+        req.app.get("io").emit("note-updated", updatedSibling);
+      }
+    }
 
     res.json(updatedNote);
   } catch (error) {
@@ -421,7 +480,14 @@ const permanentlyDeleteNote = async (req, res) => {
       });
     }
 
+    const syncGroupId = note.syncGroupId;
+
     await Note.findByIdAndDelete(req.params.id);
+
+    if (syncGroupId) {
+      // Synchronize the other copies to remove this deleted user from their sharedWith list
+      await syncSharedWithList(syncGroupId);
+    }
 
     req.app.get("io").emit("note-deleted", {
       _id: req.params.id,
@@ -472,18 +538,42 @@ const shareNote = async (req, res) => {
       return res.status(400).json({ message: "You already own this note" });
     }
 
-    const alreadyShared = (note.sharedWith || []).some(
-      (userId) => userId.toString() === userToShare._id.toString(),
-    );
+    // Set syncGroupId on original note if it doesn't have one
+    if (!note.syncGroupId) {
+      note.syncGroupId = note._id.toString();
+      await note.save();
+    }
 
-    if (alreadyShared) {
+    const syncGroupId = note.syncGroupId;
+
+    // Check if the note is already shared with this user (i.e. if userToShare already has a note in this sync group)
+    const existingSharedCopy = await Note.findOne({
+      syncGroupId,
+      owner: userToShare._id,
+    });
+
+    if (existingSharedCopy) {
       return res
         .status(400)
         .json({ message: "Note already shared with this user" });
     }
 
-    note.sharedWith.push(userToShare._id);
-    await note.save();
+    // Create a new synced copy for the collaborator
+    await Note.create({
+      title: note.title,
+      content: note.content,
+      owner: userToShare._id,
+      syncGroupId,
+      tags: note.tags || [],
+      attachments: note.attachments || [],
+      versions: note.versions || [],
+      isPinned: false,
+      isArchived: false,
+      isTrashed: false,
+    });
+
+    // Synchronize sharedWith lists for all copies in the group
+    await syncSharedWithList(syncGroupId);
 
     const io = req.app.get("io");
 
@@ -564,28 +654,67 @@ const restoreVersion = async (req, res) => {
     const tagsChanged =
       JSON.stringify(note.tags || []) !== JSON.stringify(restoredTags);
 
-    if (titleChanged || contentChanged || tagsChanged) {
-      note.versions.push({
-        title: note.title,
-        content: note.content,
-        tags: note.tags || [],
-        editedAt: new Date(),
-      });
+    const syncGroupId = note.syncGroupId;
 
-      if (note.versions.length > MAX_VERSIONS) {
-        note.versions = note.versions.slice(-MAX_VERSIONS);
+    if (syncGroupId) {
+      const siblings = await Note.find({ syncGroupId });
+
+      for (const sibling of siblings) {
+        const sibTitleChanged = sibling.title !== version.title;
+        const sibContentChanged = sibling.content !== version.content;
+        const sibTagsChanged = JSON.stringify(sibling.tags || []) !== JSON.stringify(restoredTags);
+
+        if (sibTitleChanged || sibContentChanged || sibTagsChanged) {
+          sibling.versions.push({
+            title: sibling.title,
+            content: sibling.content,
+            tags: sibling.tags || [],
+            editedAt: new Date(),
+          });
+
+          if (sibling.versions.length > MAX_VERSIONS) {
+            sibling.versions = sibling.versions.slice(-MAX_VERSIONS);
+          }
+        }
+
+        sibling.title = version.title;
+        sibling.content = version.content;
+        sibling.tags = restoredTags;
+
+        await sibling.save();
       }
+    } else {
+      if (titleChanged || contentChanged || tagsChanged) {
+        note.versions.push({
+          title: note.title,
+          content: note.content,
+          tags: note.tags || [],
+          editedAt: new Date(),
+        });
+
+        if (note.versions.length > MAX_VERSIONS) {
+          note.versions = note.versions.slice(-MAX_VERSIONS);
+        }
+      }
+
+      note.title = version.title;
+      note.content = version.content;
+      note.tags = restoredTags;
+
+      await note.save();
     }
-
-    note.title = version.title;
-    note.content = version.content;
-    note.tags = restoredTags;
-
-    await note.save();
 
     const updatedNote = await populateNoteById(note._id);
 
     req.app.get("io").emit("note-updated", updatedNote);
+
+    if (note.syncGroupId) {
+      const siblings = await Note.find({ syncGroupId: note.syncGroupId, _id: { $ne: note._id } });
+      for (const sibling of siblings) {
+        const updatedSibling = await populateNoteById(sibling._id);
+        req.app.get("io").emit("note-updated", updatedSibling);
+      }
+    }
 
     res.json(updatedNote);
   } catch (error) {
@@ -615,27 +744,61 @@ const saveAIVersion = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    // Save current state as version
-    note.versions.push({
-      title: note.title,
-      content: note.content,
-      tags: note.tags || [],
-      editedAt: new Date(),
-    });
+    const syncGroupId = note.syncGroupId;
 
-    // Replace with AI content
-    note.title = title || note.title;
-    note.content = content;
+    if (syncGroupId) {
+      const siblings = await Note.find({ syncGroupId });
 
-    if (note.versions.length > MAX_VERSIONS) {
-      note.versions = note.versions.slice(-MAX_VERSIONS);
+      for (const sibling of siblings) {
+        // Save current state as version
+        sibling.versions.push({
+          title: sibling.title,
+          content: sibling.content,
+          tags: sibling.tags || [],
+          editedAt: new Date(),
+        });
+
+        if (sibling.versions.length > MAX_VERSIONS) {
+          sibling.versions = sibling.versions.slice(-MAX_VERSIONS);
+        }
+
+        // Replace with AI content
+        sibling.title = title || sibling.title;
+        sibling.content = content;
+
+        await sibling.save();
+      }
+    } else {
+      // Save current state as version
+      note.versions.push({
+        title: note.title,
+        content: note.content,
+        tags: note.tags || [],
+        editedAt: new Date(),
+      });
+
+      if (note.versions.length > MAX_VERSIONS) {
+        note.versions = note.versions.slice(-MAX_VERSIONS);
+      }
+
+      // Replace with AI content
+      note.title = title || note.title;
+      note.content = content;
+
+      await note.save();
     }
-
-    await note.save();
 
     const updatedNote = await populateNoteById(note._id);
 
     req.app.get("io").emit("note-updated", updatedNote);
+
+    if (note.syncGroupId) {
+      const siblings = await Note.find({ syncGroupId: note.syncGroupId, _id: { $ne: note._id } });
+      for (const sibling of siblings) {
+        const updatedSibling = await populateNoteById(sibling._id);
+        req.app.get("io").emit("note-updated", updatedSibling);
+      }
+    }
 
     res.status(200).json({
       message: "AI version saved successfully",
@@ -689,6 +852,37 @@ const saveWorkspace = async (req, res) => {
   }
 };
 
+// POST /api/notes/run-code
+const runCode = async (req, res) => {
+  try {
+    const { language, version, files } = req.body;
+
+    if (!language) {
+      return res.status(400).json({ message: "Language is required" });
+    }
+    if (!Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({ message: "Files are required and must be an array" });
+    }
+
+    const axios = require("axios");
+    const pistonUrl = process.env.PISTON_URL || "https://emkc.org/api/v2/piston/execute";
+
+    const response = await axios.post(pistonUrl, {
+      language,
+      version: version || "*",
+      files
+    });
+
+    return res.status(200).json(response.data);
+  } catch (error) {
+    console.error("Piston execution error on backend:", error.message);
+    return res.status(500).json({ 
+      message: "Code execution failed", 
+      error: error.response?.data || error.message 
+    });
+  }
+};
+
 module.exports = {
   createNote,
   getNotes,
@@ -704,4 +898,5 @@ module.exports = {
   restoreVersion,
   saveAIVersion,
   saveWorkspace,
+  runCode,
 };

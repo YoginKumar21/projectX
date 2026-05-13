@@ -66,20 +66,33 @@ const setupSocket = (io) => {
     // =========================
     // NOTE ROOM JOIN
     // =========================
-    socket.on("join-note", ({ noteId, userId, userName }) => {
+    // =========================
+    // NOTE ROOM JOIN
+    // =========================
+    socket.on("join-note", async ({ noteId, userId, userName }) => {
       if (!noteId || !userId || !userName) return;
 
-      socket.join(noteId);
+      let roomToJoin = noteId;
+      try {
+        const note = await Note.findById(noteId);
+        if (note && note.syncGroupId) {
+          roomToJoin = note.syncGroupId;
+        }
+      } catch (err) {
+        console.error("Socket join-note find note error:", err.message);
+      }
 
-      socket.noteId = noteId;
+      socket.join(roomToJoin);
+
+      socket.noteId = roomToJoin;
       socket.userId = userId;
       socket.userName = userName;
 
-      if (!noteUsers[noteId]) {
-        noteUsers[noteId] = {};
+      if (!noteUsers[roomToJoin]) {
+        noteUsers[roomToJoin] = {};
       }
 
-      noteUsers[noteId][socket.id] = {
+      noteUsers[roomToJoin][socket.id] = {
         userId,
         userName,
         color: getUserColor(userId),
@@ -87,13 +100,13 @@ const setupSocket = (io) => {
         y: 0,
       };
 
-      io.to(noteId).emit("collaborators-update", {
-        count: Object.keys(noteUsers[noteId]).length,
+      io.to(roomToJoin).emit("collaborators-update", {
+        count: Object.keys(noteUsers[roomToJoin]).length,
       });
 
-      io.to(noteId).emit(
+      io.to(roomToJoin).emit(
         "live-cursors",
-        Object.entries(noteUsers[noteId]).map(([socketId, user]) => ({
+        Object.entries(noteUsers[roomToJoin]).map(([socketId, user]) => ({
           socketId,
           userId: user.userId,
           userName: user.userName,
@@ -108,42 +121,53 @@ const setupSocket = (io) => {
     // CONTENT CHANGES
     // =========================
     socket.on("send-changes", ({ noteId, content }) => {
-      if (!noteId) return;
-      socket.to(noteId).emit("receive-changes", content);
+      const activeNoteId = socket.noteId || noteId;
+      if (!activeNoteId) return;
+      socket.to(activeNoteId).emit("receive-changes", content);
     });
 
     socket.on("send-title-changes", ({ noteId, title }) => {
-      if (!noteId) return;
-      socket.to(noteId).emit("receive-title-changes", title);
+      const activeNoteId = socket.noteId || noteId;
+      if (!activeNoteId) return;
+      socket.to(activeNoteId).emit("receive-title-changes", title);
+    });
+
+    socket.on("send-comments", ({ noteId, comments }) => {
+      const activeNoteId = socket.noteId || noteId;
+      if (!activeNoteId) return;
+      socket.to(activeNoteId).emit("receive-comments", comments);
     });
 
     // =========================
     // TYPING
     // =========================
     socket.on("typing", ({ noteId, userName }) => {
-      if (!noteId) return;
-      socket.to(noteId).emit("user-typing", { userName });
+      const activeNoteId = socket.noteId || noteId;
+      if (!activeNoteId) return;
+      socket.to(activeNoteId).emit("user-typing", { userName });
     });
 
     socket.on("stop-typing", ({ noteId }) => {
-      if (!noteId) return;
-      socket.to(noteId).emit("user-stop-typing");
+      const activeNoteId = socket.noteId || noteId;
+      if (!activeNoteId) return;
+      socket.to(activeNoteId).emit("user-stop-typing");
     });
 
     // =========================
     // LIVE CURSOR
     // =========================
     socket.on("cursor-move", ({ noteId, x, y }) => {
-      if (!noteId || !noteUsers[noteId] || !noteUsers[noteId][socket.id]) {
+      const activeNoteId = socket.noteId || noteId;
+      if (!activeNoteId || !noteUsers[activeNoteId] || !noteUsers[activeNoteId][socket.id]) {
         return;
       }
 
-      noteUsers[noteId][socket.id].x = x;
-      noteUsers[noteId][socket.id].y = y;
+      noteUsers[activeNoteId][socket.id].x = x;
+      noteUsers[activeNoteId][socket.id].y = y;
 
-      const user = noteUsers[noteId][socket.id];
+      const user = noteUsers[activeNoteId][socket.id];
 
-      socket.to(noteId).emit("cursor-update", {
+      socket.to(activeNoteId).emit("cursor-update", {
         socketId: socket.id,
         userId: user.userId,
         userName: user.userName,
@@ -158,10 +182,11 @@ const setupSocket = (io) => {
     // =========================
     socket.on("send-message", async ({ noteId, userId, text }) => {
       try {
-        if (!noteId || !userId || !text || !text.trim()) return;
+        const activeNoteId = socket.noteId || noteId;
+        if (!activeNoteId || !userId || !text || !text.trim()) return;
 
-        const note = await Note.findById(noteId).select(
-          "owner sharedWith title",
+        const note = await Note.findById(activeNoteId).select(
+          "owner sharedWith title syncGroupId"
         );
         if (!note) return;
 
@@ -176,7 +201,7 @@ const setupSocket = (io) => {
         if (!user) return;
 
         const newMessage = await ChatMessage.create({
-          note: noteId,
+          note: activeNoteId,
           sender: userId,
           senderName: user.name,
           text: text.trim(),
@@ -202,7 +227,7 @@ const setupSocket = (io) => {
                 recipient: recipientId,
                 sender: userId,
                 senderName: user.name,
-                note: noteId,
+                note: activeNoteId,
                 type: "chat",
                 message: `${user.name} sent a message in "${note.title}"`,
               }),
@@ -210,7 +235,7 @@ const setupSocket = (io) => {
           );
         }
 
-        io.to(noteId).emit("receive-message", {
+        io.to(activeNoteId).emit("receive-message", {
           _id: newMessage._id,
           note: newMessage.note,
           sender: newMessage.sender,
@@ -229,6 +254,24 @@ const setupSocket = (io) => {
 
     socket.on("join-room", async ({ roomId, userId, userName }) => {
       if (!roomId) return;
+
+      // Restrict Code Workspaces to authorized owner and shared collaborators
+      try {
+        const workspace = await Note.findOne({ isCodeWorkspace: true, codeRoomId: roomId });
+        if (workspace) {
+          const ownerId = workspace.owner.toString();
+          const isOwner = ownerId === userId;
+          const isCollaborator = (workspace.sharedWith || []).some(id => id.toString() === userId);
+
+          if (!isOwner && !isCollaborator) {
+            console.warn(`[Access Denied] User ${userId} unauthorized to join IDE room ${roomId}`);
+            socket.emit("access-denied", { message: "Access Denied: You are not authorized to join this collaborative workspace!" });
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Workspace secure join authorization failed:", err.message);
+      }
 
       socket.join(`room:${roomId}`);
       socket.codeRoomId = roomId;

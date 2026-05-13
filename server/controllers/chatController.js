@@ -21,7 +21,9 @@ const getChatMessages = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const messages = await ChatMessage.find({ note: noteId })
+    const activeNoteId = note.syncGroupId || note._id;
+
+    const messages = await ChatMessage.find({ note: activeNoteId })
       .sort({ createdAt: 1 })
       .limit(100);
 

@@ -13,6 +13,7 @@ import NotificationSettings from "./pages/NotificationSettings";
 import NoteReader from "./pages/NoteReader";
 import { useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { reconnectSocket } from "./socket";
 
 function App() {
   useEffect(() => {
@@ -22,6 +23,9 @@ function App() {
     } else {
       document.documentElement.classList.remove("dark");
     }
+    
+    // Connect/Authorize real-time sockets on application startup
+    reconnectSocket();
   }, []);
 
   return (
