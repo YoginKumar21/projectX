@@ -5,6 +5,7 @@ const createNotification = require("../utils/createNotification");
 const jwt = require("jsonwebtoken");
 
 const noteUsers = {};
+const noteRoomCache = {};
 const codeRooms = {};
 
 const cursorColors = [
@@ -84,6 +85,7 @@ const setupSocket = (io) => {
 
       socket.join(roomToJoin);
 
+      noteRoomCache[noteId] = roomToJoin; // Cache the resolved noteId to roomToJoin
       socket.noteId = roomToJoin;
       socket.userId = userId;
       socket.userName = userName;
@@ -121,19 +123,19 @@ const setupSocket = (io) => {
     // CONTENT CHANGES
     // =========================
     socket.on("send-changes", ({ noteId, content }) => {
-      const activeNoteId = socket.noteId || noteId;
+      const activeNoteId = socket.noteId || noteRoomCache[noteId] || noteId;
       if (!activeNoteId) return;
       socket.to(activeNoteId).emit("receive-changes", content);
     });
 
     socket.on("send-title-changes", ({ noteId, title }) => {
-      const activeNoteId = socket.noteId || noteId;
+      const activeNoteId = socket.noteId || noteRoomCache[noteId] || noteId;
       if (!activeNoteId) return;
       socket.to(activeNoteId).emit("receive-title-changes", title);
     });
 
     socket.on("send-comments", ({ noteId, comments }) => {
-      const activeNoteId = socket.noteId || noteId;
+      const activeNoteId = socket.noteId || noteRoomCache[noteId] || noteId;
       if (!activeNoteId) return;
       socket.to(activeNoteId).emit("receive-comments", comments);
     });
@@ -142,13 +144,13 @@ const setupSocket = (io) => {
     // TYPING
     // =========================
     socket.on("typing", ({ noteId, userName }) => {
-      const activeNoteId = socket.noteId || noteId;
+      const activeNoteId = socket.noteId || noteRoomCache[noteId] || noteId;
       if (!activeNoteId) return;
       socket.to(activeNoteId).emit("user-typing", { userName });
     });
 
     socket.on("stop-typing", ({ noteId }) => {
-      const activeNoteId = socket.noteId || noteId;
+      const activeNoteId = socket.noteId || noteRoomCache[noteId] || noteId;
       if (!activeNoteId) return;
       socket.to(activeNoteId).emit("user-stop-typing");
     });
@@ -157,9 +159,23 @@ const setupSocket = (io) => {
     // LIVE CURSOR
     // =========================
     socket.on("cursor-move", ({ noteId, x, y }) => {
-      const activeNoteId = socket.noteId || noteId;
-      if (!activeNoteId || !noteUsers[activeNoteId] || !noteUsers[activeNoteId][socket.id]) {
-        return;
+      const activeNoteId = socket.noteId || noteRoomCache[noteId] || noteId;
+      if (!activeNoteId) return;
+
+      if (!noteUsers[activeNoteId]) {
+        noteUsers[activeNoteId] = {};
+      }
+
+      if (!noteUsers[activeNoteId][socket.id]) {
+        const uId = socket.userId || `guest-${socket.id}`;
+        const uName = socket.userName || "Collaborator";
+        noteUsers[activeNoteId][socket.id] = {
+          userId: uId,
+          userName: uName,
+          color: getUserColor(uId),
+          x: 0,
+          y: 0,
+        };
       }
 
       noteUsers[activeNoteId][socket.id].x = x;

@@ -89,7 +89,7 @@ function Register() {
                 <input
                   type="text"
                   name="name"
-                  placeholder="Mohan Das"
+                  placeholder="Enter your full name"
                   value={formData.name}
                   onChange={handleChange}
                   required

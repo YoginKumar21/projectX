@@ -19,9 +19,8 @@ export const reconnectSocket = () => {
   const token = localStorage.getItem("token");
   if (token) {
     socket.auth = { token };
-    if (socket.disconnected) {
-      socket.connect();
-    }
+    socket.disconnect(); // Cleanly shut down any existing connection handshake
+    socket.connect();    // Establish a fresh connection with the active token
   } else {
     socket.disconnect();
   }

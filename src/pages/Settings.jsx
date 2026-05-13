@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import AppShell from "../components/layout/AppShell.jsx";
+import { reconnectSocket } from "../socket";
 
 function Settings() {
   const navigate = useNavigate();
@@ -46,6 +47,7 @@ function Settings() {
 
   const handleLogout = () => {
     localStorage.clear();
+    reconnectSocket(); // Cleanly disconnect the socket
     toast.success("Logged out successfully");
     navigate("/login");
   };

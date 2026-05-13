@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import AppShell from "../components/layout/AppShell.jsx";
 import API from "../api/axios";
+import { reconnectSocket } from "../socket";
 
 function Profile() {
   const navigate = useNavigate();
@@ -99,6 +100,7 @@ function Profile() {
 
   const handleLogout = () => {
     localStorage.clear();
+    reconnectSocket(); // Cleanly disconnect the socket
     toast.success("Logged out successfully");
     navigate("/login");
   };
